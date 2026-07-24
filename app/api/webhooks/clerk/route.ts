@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     const { id } = evt.data;
     await db
       .update(users)
-      .set({ isBanned: true, banReason: "Account deleted" })
+      .set({ isBanned: true })
       .where(eq(users.id, id));
   }
 

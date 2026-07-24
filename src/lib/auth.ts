@@ -4,7 +4,7 @@ import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function auth() {
-  const { userId } = clerkAuth();
+  const { userId } = await clerkAuth();
   if (!userId) return null;
 
   const profile = await db

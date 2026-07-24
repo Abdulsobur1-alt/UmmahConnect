@@ -12,7 +12,7 @@ export type AuthContext = {
 export async function requireAuth(): Promise<
   AuthContext | { error: "unauthorized" }
 > {
-  const { userId } = auth();
+  const { userId } = await auth();
   const user = await currentUser();
 
   if (!userId || !user?.emailAddresses[0]?.emailAddress) {
@@ -33,7 +33,7 @@ export async function requireAuth(): Promise<
 }
 
 export async function requireAuthWithProfile() {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) {
     return { error: "unauthorized" as const };
   }

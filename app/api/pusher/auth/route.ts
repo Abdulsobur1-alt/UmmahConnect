@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { pusherServer } from "@/lib/pusher/server";
 
 export async function POST(req: Request) {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) return new Response("Unauthorized", { status: 401 });
 
   const data = await req.formData();

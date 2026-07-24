@@ -28,7 +28,7 @@ export async function GET() {
 
   // Check 3: Auth
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     checks["auth"] = userId ? `authenticated` : "no session (expected for health)";
   } catch (e) {
     checks["auth"] = `FAILED: ${e instanceof Error ? e.message : "unknown error"}`;

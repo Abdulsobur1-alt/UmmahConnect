@@ -22,7 +22,7 @@ const SPONSOR_AMOUNTS: Record<string, number> = {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return fail("unauthorized", 401);
 
     const user = await db

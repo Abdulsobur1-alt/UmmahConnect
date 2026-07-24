@@ -25,7 +25,7 @@ export function getClientIp(req: NextRequest): string {
 }
 
 export async function requireAuth() {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) {
     throw { status: 401, message: "Authentication required" };
   }

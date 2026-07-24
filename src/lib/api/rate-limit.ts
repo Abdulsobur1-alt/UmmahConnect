@@ -79,9 +79,7 @@ export async function checkRateLimit(input: {
         .update(rateLimits)
         .set({
           count: nextCount,
-          windowStart: expired
-            ? now.toISOString()
-            : existingRow.windowStart.toISOString(),
+          windowStart: expired ? now : existingRow.windowStart,
         })
         .where(
           and(
