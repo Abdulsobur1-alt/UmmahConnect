@@ -5,7 +5,7 @@ import {
   CalendarDays, Send, Star, Sunrise,
   MessageSquare, Image, Globe, FileText, Sparkles,
 } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -29,6 +29,36 @@ function LoadingFeed() {
   );
 }
 
+/* Live countdown hook for prayer times */
+function useCountdown(prayerData: Prayer | undefined) {
+  const [display, setDisplay] = useState(prayerData?.minutes_until ?? 0);
+
+  useEffect(() => {
+    if (!prayerData || !prayerData.time) {
+      setDisplay(0);
+      return;
+    }
+
+    const prayerTime = prayerData.time;
+
+    function calc() {
+      const now = new Date();
+      const watNow = new Date(now.getTime() + 60 * 60 * 1000);
+      const clean = prayerTime.split(" ")[0];
+      const [h, m] = clean.split(":").map(Number);
+      const targetMin = h * 60 + m;
+      const currentMin = watNow.getUTCHours() * 60 + watNow.getUTCMinutes();
+      setDisplay(targetMin >= currentMin ? targetMin - currentMin : 24 * 60 - currentMin + targetMin);
+    }
+
+    calc();
+    const interval = setInterval(calc, 60_000);
+    return () => clearInterval(interval);
+  }, [prayerData?.time, prayerData?.minutes_until]);
+
+  return display;
+}
+
 export function HomeFeed() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -37,6 +67,7 @@ export function HomeFeed() {
   const communities = useQuery({ queryKey: ["communities"], queryFn: () => apiGet<Community[]>("/api/communities") });
   const events = useQuery({ queryKey: ["events"], queryFn: () => apiGet<EventListing[]>("/api/events") });
   const prayer = useQuery({ queryKey: ["prayer-times"], queryFn: () => apiGet<Prayer>("/api/prayer-times") });
+  const prayerMinutesUntil = useCountdown(prayer.data);
   const weekly = useQuery({ queryKey: ["weekly-count"], queryFn: () => apiGet<Weekly>("/api/messages/weekly-count") });
   const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
@@ -99,7 +130,7 @@ export function HomeFeed() {
           <Sunrise size={16} color="var(--color-success)" />
           <span className="text-13" style={{ color: "rgba(255,255,255,0.8)" }}>
             {prayer.data
-              ? `Next prayer: ${prayer.data.name} · ${prayer.data.time} · in ${prayer.data.minutes_until} min`
+              ? `Next prayer: ${prayer.data.name} · ${prayer.data.time} · in ${prayerMinutesUntil} min`
               : "🌙 Maghrib · 7:42 PM · in 34 min"}
           </span>
         </div>

@@ -7,24 +7,27 @@ export async function auth() {
   const { userId } = await clerkAuth();
   if (!userId) return null;
 
-  const profile = await db
-    .select({ plan: users.plan })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-
   const user = await currentUser();
   if (!user) return null;
 
+  const email = user.emailAddresses[0]?.emailAddress ?? "";
+
+  // Look up user by email (unique) instead of by Clerk user ID
+  // This avoids a schema migration since users.id is UUID but Clerk IDs are text
+  const [profile] = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+
+  if (!profile) return null;
+
   return {
     user: {
-      id: userId,
-      email: user.emailAddresses[0]?.emailAddress ?? "",
-      name:
-        user.firstName && user.lastName
-          ? `${user.firstName} ${user.lastName}`
-          : user.emailAddresses[0]?.emailAddress?.split("@")[0] ?? "",
-      plan: (profile[0] as { plan?: string })?.plan ?? "free",
+      id: profile.id,
+      email,
+      name: profile.fullName,
+      plan: profile.plan ?? "free",
     },
   };
 }

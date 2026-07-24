@@ -19,9 +19,6 @@ export const POST = withHandler(async (req: NextRequest) => {
     throw { status: 409, message: "An account with this email already exists." };
   }
 
-  // Clerk handles sign-up through its own UI
-  // The user record is created via Clerk webhook at /api/webhooks/clerk
-  // For backward compatibility, create the user record directly
   const industry =
     body.industry === "Other" && body.industry_custom
       ? body.industry_custom
@@ -36,8 +33,6 @@ export const POST = withHandler(async (req: NextRequest) => {
     country: "Nigeria",
     plan: body.plan,
   });
-
-  return ok({ email: body.email }, 201);
 
   return ok({ email: body.email }, 201);
 });
