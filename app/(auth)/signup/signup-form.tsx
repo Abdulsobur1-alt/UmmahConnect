@@ -1,8 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { FormEvent, useMemo, useState } from "react";
+import {
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  Loader2,
+  MailCheck,
+  ShieldCheck,
+} from "lucide-react";
+import { FormEvent, useMemo, useRef, useState } from "react";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { useSignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
@@ -41,11 +48,6 @@ const cities = [
   "Zaria",
   "Other",
 ];
-
-type SignupResponse = {
-  data?: { email?: string } | null;
-  error: string | null;
-};
 
 function passwordIssues(password: string) {
   const issues: string[] = [];
@@ -88,8 +90,109 @@ export default function SignupForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showCustomIndustry, setShowCustomIndustry] = useState(false);
+  const [formData, setFormData] = useState<Record<string, string> | null>(null);
+
+  // Verification state
+  const [verifying, setVerifying] = useState(false);
+  const [verificationCode, setVerificationCode] = useState(["", "", "", "", "", ""]);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
+  const codeRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const strength = useMemo(() => passwordStrength(password), [password]);
+
+  function focusNext(idx: number) {
+    if (idx < 5) {
+      codeRefs.current[idx + 1]?.focus();
+    }
+  }
+
+  function focusPrev(idx: number) {
+    if (idx > 0) {
+      codeRefs.current[idx - 1]?.focus();
+    }
+  }
+
+  function handleCodeChange(idx: number, value: string) {
+    if (!/^\d*$/.test(value)) return;
+    const digit = value.slice(-1);
+    const next = [...verificationCode];
+    next[idx] = digit;
+    setVerificationCode(next);
+    setVerificationError(null);
+    if (digit) focusNext(idx);
+  }
+
+  function handleCodeKeyDown(
+    idx: number,
+    e: React.KeyboardEvent<HTMLInputElement>,
+  ) {
+    if (e.key === "Backspace" && !verificationCode[idx]) {
+      focusPrev(idx);
+    }
+  }
+
+  async function sendVerificationCode() {
+    if (!signUp) return;
+    setResending(true);
+    try {
+      await signUp.prepareEmailAddressVerification({
+        strategy: "email_code",
+      });
+    } catch (err: any) {
+      setVerificationError(
+        err?.errors?.[0]?.message ?? "Failed to send verification code.",
+      );
+    } finally {
+      setResending(false);
+    }
+  }
+
+  async function verifyCode() {
+    const code = verificationCode.join("");
+    if (code.length !== 6) {
+      setVerificationError("Please enter the full 6-digit code.");
+      return;
+    }
+
+    if (!signUp) return;
+    setLoading(true);
+    setVerificationError(null);
+
+    try {
+      const result = await signUp.attemptEmailAddressVerification({ code });
+
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+
+        // Create DB user record
+        if (formData) {
+          await fetch("/api/auth/signup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...formData,
+              password,
+              country: "Nigeria",
+            }),
+          });
+        }
+
+        window.location.href = "/feed";
+      } else {
+        setVerificationError(
+          "Verification failed. Please try again.",
+        );
+        setLoading(false);
+      }
+    } catch (err: any) {
+      setLoading(false);
+      setVerificationError(
+        err?.errors?.[0]?.message ??
+          "Invalid code. Please try again.",
+      );
+    }
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -127,16 +230,15 @@ export default function SignupForm() {
     setLoading(true);
 
     try {
-      // Try to sign up with Clerk
       const result = await signUp.create({
         emailAddress: body.email as string,
         password,
       });
 
       if (result.status === "complete") {
+        // No email verification needed — proceed directly
         await setActive({ session: result.createdSessionId });
 
-        // Create DB user record
         await fetch("/api/auth/signup", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -148,9 +250,24 @@ export default function SignupForm() {
         });
 
         window.location.href = "/feed";
+      } else if (
+        result.status === "missing_requirements" &&
+        result.verifications?.emailAddress?.status === "unverified"
+      ) {
+        // Email verification required — send code and show verification UI
+        setFormData(Object.fromEntries(form.entries()) as Record<string, string>);
+        setLoading(false);
+        await signUp.prepareEmailAddressVerification({
+          strategy: "email_code",
+        });
+        setVerifying(true);
+        // Focus the first code input after render
+        setTimeout(() => codeRefs.current[0]?.focus(), 100);
       } else {
-        // Handle email verification if needed
-        setFormError("Signup could not be completed. Please try again.");
+        setLoading(false);
+        setFormError(
+          "Signup could not be completed. Please try again.",
+        );
       }
     } catch (err: any) {
       setLoading(false);
@@ -160,6 +277,204 @@ export default function SignupForm() {
       );
     }
   }
+
+  /* ── Verification Screen ── */
+  if (verifying) {
+    const email = formData?.email ?? "";
+    const code = verificationCode.join("");
+    const allFilled = code.length === 6;
+
+    return (
+      <PageTransition>
+        <div className="auth-stack">
+          <div className="auth-card">
+            <div style={{ textAlign: "center", marginBottom: 24 }}>
+              <div
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: "50%",
+                  background: "var(--color-accent-dark)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 16px",
+                }}
+              >
+                <MailCheck size={28} style={{ color: "var(--color-accent)" }} />
+              </div>
+              <h1
+                style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: 26,
+                  fontWeight: 900,
+                  margin: 0,
+                }}
+              >
+                Check your email
+              </h1>
+              <p
+                style={{
+                  color: "var(--color-text-muted)",
+                  fontSize: 14,
+                  marginTop: 8,
+                  lineHeight: 1.5,
+                }}
+              >
+                We sent a 6-digit verification code to
+                <br />
+                <strong style={{ color: "var(--color-text)" }}>{email}</strong>
+              </p>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                justifyContent: "center",
+                marginBottom: 24,
+              }}
+            >
+              {verificationCode.map((digit, idx) => (
+                <input
+                  key={idx}
+                  ref={(el) => {
+                    codeRefs.current[idx] = el;
+                  }}
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleCodeChange(idx, e.target.value)}
+                  onKeyDown={(e) => handleCodeKeyDown(idx, e)}
+                  onPaste={(e) => {
+                    e.preventDefault();
+                    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+                    if (pasted.length === 6) {
+                      const next = pasted.split("");
+                      setVerificationCode(next);
+                      codeRefs.current[5]?.focus();
+                    }
+                  }}
+                  style={{
+                    width: 44,
+                    height: 52,
+                    textAlign: "center",
+                    fontSize: 22,
+                    fontWeight: 700,
+                    fontFamily: "'DM Mono', monospace",
+                    borderRadius: 10,
+                    border: `2px solid ${verificationError ? "var(--color-error)" : digit ? "var(--color-accent)" : "var(--color-border)"}`,
+                    background: "var(--color-surface)",
+                    color: "var(--color-text)",
+                    outline: "none",
+                    transition: "border-color 0.2s",
+                  }}
+                  onFocus={(e) =>
+                    (e.target.style.borderColor = "var(--color-accent)")
+                  }
+                  onBlur={(e) =>
+                    (e.target.style.borderColor = digit
+                      ? "var(--color-accent)"
+                      : "var(--color-border)")
+                  }
+                />
+              ))}
+            </div>
+
+            {verificationError && (
+              <p
+                style={{
+                  textAlign: "center",
+                  color: "var(--color-error)",
+                  fontSize: 13,
+                  marginBottom: 16,
+                }}
+              >
+                {verificationError}
+              </p>
+            )}
+
+            <button
+              className="auth-submit"
+              disabled={loading || !allFilled}
+              onClick={verifyCode}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="spin" size={17} /> Verifying...
+                </>
+              ) : (
+                <>
+                  <ShieldCheck size={17} /> Verify email
+                </>
+              )}
+            </button>
+
+            <p
+              style={{
+                textAlign: "center",
+                fontSize: 13,
+                color: "var(--color-text-muted)",
+                marginTop: 16,
+              }}
+            >
+              Didn&apos;t receive the code?{" "}
+              <button
+                type="button"
+                disabled={resending}
+                onClick={sendVerificationCode}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--color-accent)",
+                  cursor: resending ? "not-allowed" : "pointer",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  padding: 0,
+                  textDecoration: "underline",
+                  textUnderlineOffset: 2,
+                }}
+              >
+                {resending ? "Sending..." : "Resend code"}
+              </button>
+            </p>
+
+            <button
+              type="button"
+              onClick={() => {
+                setVerifying(false);
+                setVerificationError(null);
+                setVerificationCode(["", "", "", "", "", ""]);
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                width: "100%",
+                marginTop: 20,
+                background: "none",
+                border: "1px solid var(--color-border)",
+                borderRadius: 12,
+                padding: "12px 0",
+                color: "var(--color-text-muted)",
+                fontSize: 13,
+                cursor: "pointer",
+                transition: "border-color 0.2s",
+              }}
+            >
+              <ArrowLeft size={14} />
+              Back to signup form
+            </button>
+          </div>
+        </div>
+      </PageTransition>
+    );
+  }
+
+  /* ── Signup Form ── */
 
   return (
     <PageTransition>
