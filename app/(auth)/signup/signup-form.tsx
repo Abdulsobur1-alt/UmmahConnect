@@ -643,6 +643,19 @@ export default function SignupForm() {
             <p className="auth-form-error">{formError}</p>
           ) : null}
 
+          {/* Clerk requires this element for Smart CAPTCHA rendering */}
+          <div
+            id="clerk-captcha"
+            data-cl-theme="dark"
+            data-cl-size="normal"
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              minHeight: 72,
+              marginBottom: 8,
+            }}
+          />
+
           <button className="auth-submit" disabled={loading}>
             {loading ? (
               <>
