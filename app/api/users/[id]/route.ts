@@ -4,7 +4,7 @@ import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { requireAuth } from "@/lib/api/auth";
 import { userDto } from "@/lib/api/mappers";
-import { fail, ok, serverError } from "@/lib/api/response";
+import { fail, ok, serverError } from "@/lib/api/helpers";
 
 export const dynamic = "force-dynamic";
 

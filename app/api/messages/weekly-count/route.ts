@@ -3,7 +3,7 @@ import { messageWeeklyCounts } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireAuth } from "@/lib/api/auth";
 import { mondayWeekStart } from "@/lib/api/business";
-import { fail, ok, serverError } from "@/lib/api/response";
+import { fail, ok, serverError } from "@/lib/api/helpers";
 
 export const dynamic = "force-dynamic";
 

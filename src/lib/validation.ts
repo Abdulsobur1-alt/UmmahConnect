@@ -19,6 +19,7 @@ export const signupSchema = z.object({
     .regex(/[A-Z]/, 'At least one uppercase letter')
     .regex(/[0-9]/, 'At least one number')
     .regex(/[^A-Za-z0-9]/, 'At least one special character'),
+  clerk_id: z.string().max(255).optional(),
   industry: z.string().max(100),
   industry_custom: z.string().max(100).optional(),
   career_stage: z.enum(['Student','Early Career','Mid-Level','Senior','Executive','Entrepreneur']),

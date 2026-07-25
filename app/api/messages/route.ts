@@ -2,7 +2,7 @@ import { db } from "@/lib/db/client";
 import { messages } from "@/lib/db/schema";
 import { eq, or, desc } from "drizzle-orm";
 import { requireAuth } from "@/lib/api/auth";
-import { fail, ok, serverError } from "@/lib/api/response";
+import { fail, ok, serverError } from "@/lib/api/helpers";
 
 export const dynamic = "force-dynamic";
 

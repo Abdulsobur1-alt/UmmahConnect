@@ -8,13 +8,6 @@ import { withHandler, parseBody, ok } from "@/lib/api/helpers";
 export const POST = withHandler(async (req: NextRequest) => {
   const body = await parseBody(req, signupSchema);
 
-  // Check if email already exists
-  const existing = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.email, body.email))
-    .limit(1);
-
   const industry =
     body.industry === "Other" && body.industry_custom
       ? body.industry_custom
@@ -23,6 +16,7 @@ export const POST = withHandler(async (req: NextRequest) => {
   await db
     .insert(users)
     .values({
+      clerkId: body.clerk_id ?? null,
       fullName: body.full_name,
       email: body.email,
       industry,

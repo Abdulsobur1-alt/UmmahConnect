@@ -1,7 +1,7 @@
 import { db } from "@/lib/db/client";
 import { eventListings } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { fail, ok, serverError } from "@/lib/api/response";
+import { fail, ok, serverError } from "@/lib/api/helpers";
 
 export const dynamic = "force-dynamic";
 

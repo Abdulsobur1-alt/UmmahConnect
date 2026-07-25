@@ -3,9 +3,8 @@ import { db } from "@/lib/db/client";
 import { posts, comments, users } from "@/lib/db/schema";
 import { eq, and, asc } from "drizzle-orm";
 import { requireAuth } from "@/lib/api/auth";
-import { withHandler, ok, err } from "@/lib/api/helpers";
+import { withHandler, ok, fail, serverError } from "@/lib/api/helpers";
 import { postDto, publicProfileDto } from "@/lib/api/mappers";
-import { fail, serverError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +19,7 @@ export const GET = withHandler(async (_req: NextRequest, ctx?: unknown) => {
     .limit(1);
 
   if (!postResult[0] || postResult[0].posts.isDeleted) {
-    return err("Post not found", 404);
+    return fail("Post not found", 404);
   }
 
   const commentRows = await db

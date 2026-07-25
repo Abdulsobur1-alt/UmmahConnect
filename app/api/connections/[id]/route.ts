@@ -4,7 +4,7 @@ import { connections, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { requireAuth } from "@/lib/api/auth";
 import { notifyUser } from "@/lib/api/notifications";
-import { fail, ok, serverError } from "@/lib/api/response";
+import { fail, ok, serverError } from "@/lib/api/helpers";
 
 export const dynamic = "force-dynamic";
 

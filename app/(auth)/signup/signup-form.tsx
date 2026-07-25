@@ -172,6 +172,7 @@ export default function SignupForm() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               ...formData,
+              clerk_id: signUp.createdUserId,
               password,
               country: "Nigeria",
             }),
@@ -244,6 +245,7 @@ export default function SignupForm() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...body,
+            clerk_id: signUp.createdUserId,
             password,
             country: "Nigeria",
           }),

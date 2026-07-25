@@ -1,11 +1,11 @@
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db/client";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { requireAuth } from "@/lib/api/auth";
 import { initializePaystackTransaction } from "@/lib/api/paystack";
 import { asRecord, stringValue } from "@/lib/api/parsing";
-import { fail, ok, serverError } from "@/lib/api/response";
+import { fail, ok, serverError } from "@/lib/api/helpers";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -22,18 +22,19 @@ const SPONSOR_AMOUNTS: Record<string, number> = {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) return fail("unauthorized", 401);
+    const auth = await requireAuth();
+    if ("error" in auth) return fail("unauthorized", 401);
 
     const user = await db
       .select({ email: users.email })
       .from(users)
-      .where(eq(users.id, userId))
+      .where(eq(users.id, auth.userId))
       .limit(1);
 
     if (!user[0]?.email) return fail("unauthorized", 401);
 
     const body = asRecord(await request.json());
+    const userId = auth.userId;
     const plan = stringValue(body.plan);
     const eventId = stringValue(body.event_id);
     const currency = stringValue(body.currency) || "NGN";

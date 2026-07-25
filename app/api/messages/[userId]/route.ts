@@ -7,7 +7,7 @@ import { mondayWeekStart } from "@/lib/api/business";
 import { messageDto } from "@/lib/api/mappers";
 import { notifyUser } from "@/lib/api/notifications";
 import { triggerEvent } from "@/lib/pusher/server";
-import { fail, ok, serverError } from "@/lib/api/response";
+import { fail, ok, serverError } from "@/lib/api/helpers";
 
 export const dynamic = "force-dynamic";
 

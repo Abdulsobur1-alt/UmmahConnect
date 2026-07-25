@@ -4,7 +4,7 @@ import { users, subscriptions, eventListings } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { notifyUser } from "@/lib/api/notifications";
 import { verifyPaystackSignature } from "@/lib/api/paystack";
-import { fail, ok, serverError } from "@/lib/api/response";
+import { fail, ok, serverError } from "@/lib/api/helpers";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";

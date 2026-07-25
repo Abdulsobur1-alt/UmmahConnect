@@ -4,7 +4,7 @@ import { posts, users } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { requireAuth, requireAuthWithProfile } from "@/lib/api/auth";
 import { postDto } from "@/lib/api/mappers";
-import { fail, ok, serverError } from "@/lib/api/response";
+import { fail, ok, serverError } from "@/lib/api/helpers";
 
 export const dynamic = "force-dynamic";
 

@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { Webhook } from "svix";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/client";
@@ -39,14 +40,33 @@ export async function POST(req: Request) {
     const email = email_addresses[0]?.email_address;
     const full_name = [first_name, last_name].filter(Boolean).join(" ") || "New Member";
 
-    await db
-      .insert(users)
-      .values({
-        id,
-        fullName: full_name,
-        email,
-      })
-      .onConflictDoNothing();
+    if (!email) return new Response("Missing email", { status: 400 });
+
+    // Check if user already exists by email (from signup form)
+    const existing = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+
+    if (existing[0]) {
+      // Link Clerk ID to existing DB record
+      await db
+        .update(users)
+        .set({ clerkId: id })
+        .where(eq(users.id, existing[0].id));
+    } else {
+      // Create new user with auto-generated UUID and separate clerkId
+      await db
+        .insert(users)
+        .values({
+          id: crypto.randomUUID(),
+          clerkId: id,
+          fullName: full_name,
+          email,
+        })
+        .onConflictDoNothing({ target: users.email });
+    }
   }
 
   if (evt.type === "user.deleted") {
@@ -54,7 +74,7 @@ export async function POST(req: Request) {
     await db
       .update(users)
       .set({ isBanned: true })
-      .where(eq(users.id, id));
+      .where(eq(users.clerkId, id));
   }
 
   return new Response("OK", { status: 200 });

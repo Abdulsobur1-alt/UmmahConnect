@@ -24,6 +24,7 @@ export const connectionStatusEnum = pgEnum("connection_status", [
 /* ─── 1. Users ─── */
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
+  clerkId: text("clerk_id").unique(),
   fullName: text("full_name").notNull(),
   email: text("email").notNull().unique(),
   password: text("password"),
