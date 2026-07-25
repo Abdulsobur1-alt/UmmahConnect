@@ -1,53 +1,51 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { updateSession } from "@/lib/supabase/middleware";
 
-const isPublicRoute = createRouteMatcher([
-  "/",
-  "/login(.*)",
-  "/signup(.*)",
-  "/profiles/(.*)",
-  "/posts/(.*)",
-  "/communities/(.*)",
-  "/jobs(.*)",
-  "/events(.*)",
-  "/api/profiles/(.*)",
-  "/api/jobs(.*)",
-  "/api/events(.*)",
-  "/api/posts/(.*)",
-  "/api/communities/(.*)",
-  "/api/waitlist(.*)",
-  "/api/prayer-times(.*)",
-  "/api/health(.*)",
-  "/api/payments/webhook(.*)",
-  "/api/payments/verify(.*)",
-]);
+const protectedPaths = [
+  "/feed",
+  "/messages",
+  "/notifications",
+  "/settings",
+  "/mentorship",
+  "/discover",
+  "/profile",
+];
 
-const isProtectedRoute = createRouteMatcher([
-  "/feed(.*)",
-  "/messages(.*)",
-  "/notifications(.*)",
-  "/settings(.*)",
-  "/mentorship(.*)",
-  "/discover(.*)",
-  "/dashboard(.*)",
-  "/profile(.*)",
-]);
+const authPaths = ["/login", "/signup"];
 
-export default clerkMiddleware(async (auth, request) => {
-  const { userId } = await auth();
+function isProtected(pathname: string) {
+  return protectedPaths.some(
+    (p) => pathname === p || pathname.startsWith(p + "/"),
+  );
+}
 
-  if (isProtectedRoute(request) && !userId) {
+function isAuthPage(pathname: string) {
+  return authPaths.some(
+    (p) => pathname === p || pathname.startsWith(p + "/"),
+  );
+}
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Refresh session — also returns user if valid
+  const { user, supabaseResponse } = await updateSession(request);
+
+  // Redirect to login if accessing protected route without session
+  if (isProtected(pathname) && !user) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("next", request.nextUrl.pathname);
+    loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  if (userId && (request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/signup")) {
+  // Redirect to feed if accessing auth pages with an active session
+  if (isAuthPage(pathname) && user) {
     return NextResponse.redirect(new URL("/feed", request.url));
   }
 
-  return NextResponse.next();
-});
+  return supabaseResponse;
+}
 
 export const config = {
   matcher: [

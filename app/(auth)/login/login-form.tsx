@@ -5,17 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { PageTransition } from "@/components/ui/PageTransition";
-import { useSignIn } from "@clerk/nextjs";
-
-type LoginResponse = {
-  error: string | null;
-  message?: string;
-};
+import { createClient } from "@/lib/supabase/client";
 
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isLoaded, signIn, setActive } = useSignIn();
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -40,27 +34,25 @@ export default function LoginForm() {
       return;
     }
 
-    if (!isLoaded || !signIn) {
-      setFormError("Authentication system is loading.");
-      setLoading(false);
-      return;
-    }
-
     try {
-      const result = await signIn.create({
-        identifier: email,
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
         password,
       });
 
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        router.push("/feed");
-        router.refresh();
-      } else {
-        setFormError("Sign in could not be completed.");
+      if (error) {
+        setFormError(error.message === "Invalid login credentials"
+          ? "Invalid email or password. Please try again."
+          : error.message);
+        setLoading(false);
+        return;
       }
-    } catch (err: any) {
-      setFormError(err?.errors?.[0]?.message ?? "Invalid email or password. Please try again.");
+
+      router.push("/feed");
+      router.refresh();
+    } catch (err) {
+      setFormError("An unexpected error occurred. Please try again.");
     }
 
     setLoading(false);

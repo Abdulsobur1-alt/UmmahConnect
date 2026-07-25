@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { DM_Sans, Playfair_Display } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
 
@@ -35,25 +34,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider
-      appearance={{
-        variables: {
-          colorPrimary: "#1A6B5C",
-          colorBackground: "#0D1B1E",
-          colorText: "#ffffff",
-          colorInputBackground: "#132420",
-          colorInputText: "#ffffff",
-          borderRadius: "12px",
-        },
-      }}
-    >
-      <html lang="en" className={`${playfair.variable} ${dmSans.variable}`}>
-        <body>
-          <div className="app-shell">
-            <Providers>{children}</Providers>
-          </div>
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang="en" className={`${playfair.variable} ${dmSans.variable}`}>
+      <body>
+        <div className="app-shell">
+          <Providers>{children}</Providers>
+        </div>
+      </body>
+    </html>
   );
 }

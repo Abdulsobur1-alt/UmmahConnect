@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
-import crypto from "crypto";
-import { auth } from "@clerk/nextjs/server";
+import { requireAuth } from "@/lib/api/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const auth = await requireAuth();
+    if ("error" in auth) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
@@ -19,18 +16,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "file_required" }, { status: 400 });
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
+    // Upload to Supabase Storage
+    const { createClient } = await import("@/lib/supabase/server");
+    const supabase = await createClient();
+    
     const ext = file.name.split(".").pop() ?? "jpg";
-    const filename = `${crypto.randomUUID()}.${ext}`;
-    const dir = join(process.cwd(), "public", "uploads", "banners", userId);
-    await mkdir(dir, { recursive: true });
-    const filepath = join(dir, filename);
-    await writeFile(filepath, buffer);
+    const fileName = `banners/${auth.userId}/${Date.now()}.${ext}`;
+    
+    const bytes = await file.arrayBuffer();
+    const buffer = new Uint8Array(bytes);
+    
+    const { data, error } = await supabase.storage
+      .from("uploads")
+      .upload(fileName, buffer, {
+        contentType: file.type,
+        upsert: false,
+      });
 
-    const url = `/uploads/banners/${userId}/${filename}`;
-    return NextResponse.json({ url });
+    if (error) {
+      return NextResponse.json({ error: "upload_failed" }, { status: 500 });
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("uploads")
+      .getPublicUrl(fileName);
+
+    return NextResponse.json({ url: urlData.publicUrl });
   } catch {
     return NextResponse.json({ error: "server_error" }, { status: 500 });
   }

@@ -1,7 +1,7 @@
-import { requireAuth } from "@/lib/api/auth";
+import { requireAuth } from "@/lib/supabase/auth";
 
 /**
- * Legacy auth helper — delegates to the consolidated auth module.
+ * Legacy auth helper — delegates to the consolidated Supabase auth module.
  * Kept for backward compatibility with routes that still import from here.
  */
 export async function auth() {

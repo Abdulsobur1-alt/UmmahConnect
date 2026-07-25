@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { ok, fail } from "@/lib/api/helpers";
 
 /**
- * Login is handled entirely by Clerk.
+ * Login is handled entirely by Supabase Auth on the client side.
  * This endpoint is kept for backward compatibility.
  */
 export async function POST(request: NextRequest) {

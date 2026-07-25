@@ -11,8 +11,8 @@ import {
 } from "lucide-react";
 import { FormEvent, useMemo, useRef, useState } from "react";
 import { PageTransition } from "@/components/ui/PageTransition";
-import { useSignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 const industries = [
   "Tech & Software",
@@ -83,7 +83,6 @@ function passwordStrength(password: string) {
 
 export default function SignupForm() {
   const router = useRouter();
-  const { isLoaded, signUp, setActive } = useSignUp();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -133,15 +132,17 @@ export default function SignupForm() {
   }
 
   async function sendVerificationCode() {
-    if (!signUp) return;
+    if (!formData?.email) return;
     setResending(true);
     try {
-      await signUp.prepareEmailAddressVerification({
-        strategy: "email_code",
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOtp({
+        email: formData.email,
       });
+      if (error) throw error;
     } catch (err: any) {
       setVerificationError(
-        err?.errors?.[0]?.message ?? "Failed to send verification code.",
+        err?.message ?? "Failed to send verification code.",
       );
     } finally {
       setResending(false);
@@ -155,42 +156,50 @@ export default function SignupForm() {
       return;
     }
 
-    if (!signUp) return;
     setLoading(true);
     setVerificationError(null);
 
     try {
-      const result = await signUp.attemptEmailAddressVerification({ code });
+      const supabase = createClient();
+      const { error } = await supabase.auth.verifyOtp({
+        email: formData?.email ?? "",
+        token: code,
+        type: "email",
+      });
 
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-
-        // Create DB user record
-        if (formData) {
-          await fetch("/api/auth/signup", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              ...formData,
-              clerk_id: signUp.createdUserId,
-              password,
-              country: "Nigeria",
-            }),
-          });
-        }
-
-        window.location.href = "/feed";
-      } else {
+      if (error) {
         setVerificationError(
-          "Verification failed. Please try again.",
+          error.message ?? "Invalid code. Please try again.",
         );
         setLoading(false);
+        return;
       }
+
+      // Create DB user record after verification
+      if (formData) {
+        const res = await fetch("/api/auth/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...formData,
+            password,
+            country: "Nigeria",
+          }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          setVerificationError(data.error ?? "Failed to create profile.");
+          setLoading(false);
+          return;
+        }
+      }
+
+      window.location.href = "/feed";
     } catch (err: any) {
       setLoading(false);
       setVerificationError(
-        err?.errors?.[0]?.message ??
-          "Invalid code. Please try again.",
+        err?.message ?? "Verification failed. Please try again.",
       );
     }
   }
@@ -223,59 +232,44 @@ export default function SignupForm() {
       return;
     }
 
-    if (!isLoaded || !signUp) {
-      setFormError("Authentication system is loading.");
-      return;
-    }
-
     setLoading(true);
 
     try {
-      const result = await signUp.create({
-        emailAddress: body.email as string,
+      const supabase = createClient();
+      const { error, data } = await supabase.auth.signUp({
+        email: body.email as string,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/feed`,
+        },
       });
 
-      if (result.status === "complete") {
-        // No email verification needed — proceed directly
-        await setActive({ session: result.createdSessionId });
-
-        await fetch("/api/auth/signup", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...body,
-            clerk_id: signUp.createdUserId,
-            password,
-            country: "Nigeria",
-          }),
-        });
-
-        window.location.href = "/feed";
-      } else if (
-        result.status === "missing_requirements" &&
-        result.verifications?.emailAddress?.status === "unverified"
-      ) {
-        // Email verification required — send code and show verification UI
-        setFormData(Object.fromEntries(form.entries()) as Record<string, string>);
+      if (error) {
+        setFormError(error.message);
         setLoading(false);
-        await signUp.prepareEmailAddressVerification({
-          strategy: "email_code",
-        });
-        setVerifying(true);
-        // Focus the first code input after render
-        setTimeout(() => codeRefs.current[0]?.focus(), 100);
-      } else {
-        setLoading(false);
-        setFormError(
-          "Signup could not be completed. Please try again.",
-        );
+        return;
       }
+
+      // Store form data for post-verification use
+      setFormData(Object.fromEntries(form.entries()) as Record<string, string>);
+      setLoading(false);
+
+      if (data?.user?.identities?.length === 0) {
+        // User already exists but not confirmed
+        setFormError("An account with this email already exists. Please sign in.");
+        return;
+      }
+
+      // Show verification UI
+      await supabase.auth.signInWithOtp({
+        email: body.email as string,
+      });
+      setVerifying(true);
+      setTimeout(() => codeRefs.current[0]?.focus(), 100);
     } catch (err: any) {
       setLoading(false);
       setFormError(
-        err?.errors?.[0]?.message ??
-          "Signup could not be completed. Please review your details and try again.",
+        err?.message ?? "Signup could not be completed. Please try again.",
       );
     }
   }
@@ -644,19 +638,6 @@ export default function SignupForm() {
           {formError ? (
             <p className="auth-form-error">{formError}</p>
           ) : null}
-
-          {/* Clerk requires this element for Smart CAPTCHA rendering */}
-          <div
-            id="clerk-captcha"
-            data-cl-theme="dark"
-            data-cl-size="normal"
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              minHeight: 72,
-              marginBottom: 8,
-            }}
-          />
 
           <button className="auth-submit" disabled={loading}>
             {loading ? (

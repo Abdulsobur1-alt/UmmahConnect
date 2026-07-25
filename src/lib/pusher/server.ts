@@ -1,17 +1,76 @@
-import Pusher from "pusher";
+import { createClient } from "@/lib/supabase/server";
 
-export const pusherServer = new Pusher({
-  appId: process.env.PUSHER_APP_ID!,
-  key: process.env.NEXT_PUBLIC_PUSHER_APP_KEY!,
-  secret: process.env.PUSHER_SECRET!,
-  cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
-  useTLS: true,
-});
-
+/**
+ * Trigger a realtime event via Supabase Realtime broadcast.
+ * Subscribes to the channel before sending.
+ */
 export async function triggerEvent(
   channel: string,
   event: string,
   data: unknown,
 ) {
-  await pusherServer.trigger(channel, event, data);
+  const supabase = await createClient();
+  const realtimeChannel = supabase.channel(channel);
+
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error("Channel subscription timed out"));
+    }, 5000);
+
+    realtimeChannel.subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        clearTimeout(timeout);
+        realtimeChannel.send({
+          type: "broadcast",
+          event,
+          payload: data,
+        });
+        // Clean up after sending
+        setTimeout(() => {
+          supabase.removeChannel(realtimeChannel);
+        }, 1000);
+        resolve();
+      } else if (status === "CHANNEL_ERROR") {
+        clearTimeout(timeout);
+        reject(new Error("Channel error"));
+      }
+    });
+  });
+}
+
+/**
+ * Trigger a realtime event using the service role key for admin broadcasts.
+ */
+export async function triggerAdminEvent(
+  channel: string,
+  event: string,
+  data: unknown,
+) {
+  const { createAdminClient } = await import("@/lib/supabase/server");
+  const supabase = createAdminClient();
+  const realtimeChannel = supabase.channel(channel);
+
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error("Channel subscription timed out"));
+    }, 5000);
+
+    realtimeChannel.subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        clearTimeout(timeout);
+        realtimeChannel.send({
+          type: "broadcast",
+          event,
+          payload: data,
+        });
+        setTimeout(() => {
+          supabase.removeChannel(realtimeChannel);
+        }, 1000);
+        resolve();
+      } else if (status === "CHANNEL_ERROR") {
+        clearTimeout(timeout);
+        reject(new Error("Channel error"));
+      }
+    });
+  });
 }

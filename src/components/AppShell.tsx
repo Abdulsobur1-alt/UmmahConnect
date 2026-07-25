@@ -130,7 +130,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </Link>
                 <button
                   className="dropdown-item"
-                  onClick={() => { window.location.href = "/api/auth/logout"; }}
+                  onClick={async () => {
+                    const { createClient } = await import("@/lib/supabase/client");
+                    const supabase = createClient();
+                    await supabase.auth.signOut();
+                    window.location.href = "/login";
+                  }}
                 >
                   <LogOut size={16} /> Sign out
                 </button>

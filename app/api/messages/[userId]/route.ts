@@ -6,7 +6,7 @@ import { requireAuth } from "@/lib/api/auth";
 import { mondayWeekStart } from "@/lib/api/business";
 import { messageDto } from "@/lib/api/mappers";
 import { notifyUser } from "@/lib/api/notifications";
-import { triggerEvent } from "@/lib/pusher/server";
+import { createClient } from "@/lib/supabase/server";
 import { fail, ok, serverError } from "@/lib/api/helpers";
 
 export const dynamic = "force-dynamic";
@@ -103,12 +103,17 @@ export async function POST(
       referenceId: inserted[0].id,
     });
 
-    // Trigger realtime event via Pusher
-    await triggerEvent(
-      `private-user-${params.userId}`,
-      "new-message",
-      inserted[0],
-    ).catch(() => {});
+    // Broadcast realtime event via Supabase Realtime
+    try {
+      const supabase = await createClient();
+      await supabase.channel(`user-${params.userId}`).send({
+        type: "broadcast",
+        event: "new-message",
+        payload: inserted[0],
+      });
+    } catch {
+      // Realtime notification is best-effort
+    }
 
     return ok(
       { message: messageDto(inserted[0] as any), weekly_count: count + 1 },

@@ -5,7 +5,7 @@ import { passwordResetSchema } from "@/lib/validation";
 export const POST = withHandler(async (req: NextRequest) => {
   const body = await parseBody(req, passwordResetSchema);
 
-  // Clerk handles password reset through its own flow
+  // Password reset is handled by Supabase Auth on the client side
   // This endpoint is kept for backward compatibility
 
   return ok({ sent: true });
