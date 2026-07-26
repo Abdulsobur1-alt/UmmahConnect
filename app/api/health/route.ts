@@ -24,13 +24,19 @@ export async function GET() {
     checks["database"] = `FAILED: ${errMsg}`;
   }
 
-  // Check 3: Full users table SELECT (replicates /api/users/me query)
-  try {
-    const full = await db.select().from(users).limit(1);
-    checks["users_select"] = `OK (${full.length} rows)`;
-  } catch (e) {
-    const errMsg = e instanceof Error ? e.message : String(e);
-    checks["users_select"] = `FAILED: ${errMsg.substring(0, 200)}`;
+  // Check 3: Test specific columns to find which is missing
+  const testCols = ["isBanned", "createdAt", "updatedAt", "bannerUrl", "avatarUrl", "skills", "plan", "showPhoto", "openToOpportunities"];
+  for (const col of testCols) {
+    try {
+      const colRef = (users as any)[col];
+      if (colRef) {
+        await db.select({ v: colRef }).from(users).limit(1);
+        checks[`col_${col}`] = "OK";
+      }
+    } catch (e) {
+      const errMsg = e instanceof Error ? e.message : String(e);
+      checks[`col_${col}`] = `FAILED: ${errMsg.substring(0, 120)}`;
+    }
   }
 
   // Check 3: Health check only (auth requires cookies, skip for health)
