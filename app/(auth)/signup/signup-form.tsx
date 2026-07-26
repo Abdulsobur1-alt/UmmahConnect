@@ -126,10 +126,23 @@ export default function SignupForm() {
 
     try {
       const supabase = createClient();
+
+      // Determine industry value (handle "Other" with custom input)
+      const industry =
+        body.industry === "Other" && body.industry_custom
+          ? body.industry_custom
+          : body.industry;
+
       const { error, data } = await supabase.auth.signUp({
         email: body.email as string,
         password,
         options: {
+          data: {
+            full_name: body.full_name,
+            industry,
+            career_stage: body.career_stage,
+            city: body.city,
+          },
           emailRedirectTo: `${window.location.origin}/feed`,
         },
       });
@@ -143,7 +156,7 @@ export default function SignupForm() {
       setLoading(false);
 
       if (data?.user?.identities?.length === 0) {
-        // User already exists but not confirmed
+        // User already exists
         setFormError("An account with this email already exists. Please sign in.");
         return;
       }
@@ -157,22 +170,8 @@ export default function SignupForm() {
         });
       }
 
-      // Create DB user record immediately
-      const signupRes = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...Object.fromEntries(form.entries()),
-          country: "Nigeria",
-        }),
-      });
-
-      if (!signupRes.ok) {
-        setFormError("Account created but profile setup failed. Please try signing in.");
-        setLoading(false);
-        return;
-      }
-
+      // Redirect to feed — requireAuth() will auto-create the DB record
+      // using the user_metadata we stored above (industry, city, etc.)
       window.location.href = "/feed";
     } catch (err: any) {
       setLoading(false);

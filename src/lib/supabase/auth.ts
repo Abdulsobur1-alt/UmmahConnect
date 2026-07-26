@@ -62,12 +62,14 @@ export async function requireAuth(): Promise<
     }
 
     // Auto-create DB record for users who have a Supabase Auth account
-    // but no corresponding DB record (e.g. signed up during testing before
-    // the signup flow was fixed).
+    // but no corresponding DB record.
+    // Signup form stores full_name, industry, career_stage, city in
+    // user.user_metadata which are read here.
+    const meta = user.user_metadata ?? {};
     const userEmail = user.email ?? `user-${user.id.slice(0, 8)}@placeholder.com`;
     const userName =
-      user.user_metadata?.full_name ??
-      user.user_metadata?.name ??
+      meta.full_name ??
+      meta.name ??
       userEmail.split("@")[0] ??
       "New Member";
 
@@ -77,10 +79,13 @@ export async function requireAuth(): Promise<
         id: user.id,
         fullName: userName,
         email: userEmail,
+        industry: meta.industry ?? null,
+        careerStage: meta.career_stage ?? null,
+        city: meta.city ?? null,
         country: "Nigeria",
         plan: "free",
       })
-      .onConflictDoNothing() // suppress any constraint violations — best-effort auto-create;
+      .onConflictDoNothing(); // suppress any constraint violations — best-effort auto-create
 
     return {
       userId: user.id,
