@@ -14,6 +14,7 @@ export type AuthContext = {
 /**
  * Authenticate the current request using Supabase Auth.
  * Looks up the user in the DB by their Supabase auth user ID.
+ * If the Supabase auth user exists but has no DB record, one is auto-created.
  * Returns the DB UUID as `userId`.
  */
 export async function requireAuth(): Promise<
@@ -52,12 +53,39 @@ export async function requireAuth(): Promise<
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!profile) return { error: "unauthorized" };
+    if (profile) {
+      return {
+        userId: profile.id,
+        email: profile.email,
+        plan: profile.plan ?? "free",
+      };
+    }
+
+    // Auto-create DB record for users who have a Supabase Auth account
+    // but no corresponding DB record (e.g. signed up during testing before
+    // the signup flow was fixed).
+    const userEmail = user.email ?? `user-${user.id.slice(0, 8)}@placeholder.com`;
+    const userName =
+      user.user_metadata?.full_name ??
+      user.user_metadata?.name ??
+      userEmail.split("@")[0] ??
+      "New Member";
+
+    await db
+      .insert(users)
+      .values({
+        id: user.id,
+        fullName: userName,
+        email: userEmail,
+        country: "Nigeria",
+        plan: "free",
+      })
+      .onConflictDoNothing() // suppress any constraint violations — best-effort auto-create;
 
     return {
-      userId: profile.id,
-      email: profile.email,
-      plan: profile.plan ?? "free",
+      userId: user.id,
+      email: userEmail,
+      plan: "free",
     };
   } catch {
     return { error: "unauthorized" };
