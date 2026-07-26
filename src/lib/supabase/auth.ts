@@ -92,7 +92,13 @@ export async function requireAuth(): Promise<
       email: userEmail,
       plan: "free",
     };
-  } catch {
+  } catch (error) {
+    console.error(
+      "[AUTO-CREATE ERROR]",
+      error instanceof Error
+        ? `${error.name}: ${error.message}\n${error.stack ?? "(no stack)"}`
+        : JSON.stringify(error, null, 2),
+    );
     return { error: "unauthorized" };
   }
 }
