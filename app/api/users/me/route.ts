@@ -1,30 +1,30 @@
-import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db/client";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { ok, fail } from "@/lib/api/helpers";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+    return fail("Unauthorised", 401);
   }
 
-  const user = await db
+  const [user] = await db
     .select()
     .from(users)
     .where(eq(users.id, session.user.id))
     .limit(1);
 
-  return NextResponse.json(user[0] ?? null);
+  return ok(user ?? null);
 }
 
 export async function PATCH(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+    return fail("Unauthorised", 401);
   }
 
   const body = await req.json();
@@ -78,5 +78,5 @@ export async function PATCH(req: Request) {
     .set(update as any)
     .where(eq(users.id, session.user.id));
 
-  return NextResponse.json({ success: true });
+  return ok({ success: true });
 }
