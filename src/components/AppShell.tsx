@@ -145,6 +145,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
 
+      {/* Compact mobile app bar */}
+      <header className="mobile-app-header">
+        <Link href="/feed" className="mobile-brand" aria-label="Ummah Connect home">
+          Ummah <span>Connect</span>
+        </Link>
+        <div className="mobile-header-actions">
+          <Link href="/notifications" className="mobile-icon-button" aria-label="Notifications">
+            <Bell size={19} />
+            {latestNotification ? <span className="mobile-notification-dot" /> : null}
+          </Link>
+          <Link href="/profile" className="mobile-profile-link" aria-label="Your profile">
+            <Avatar name={currentUser?.full_name ?? "U"} size={34} />
+          </Link>
+        </div>
+      </header>
+
       {/* Notification banner at top of page */}
       {latestNotification && dismissedNotif !== latestNotification.id ? (
         <div className="notif-banner animate-notification-slide"
