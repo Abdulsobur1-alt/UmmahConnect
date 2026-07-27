@@ -19,6 +19,10 @@ export type User = {
   plan: Plan;
   show_photo: boolean;
   open_to_opportunities: boolean;
+  allow_connection_requests: boolean;
+  onboarding_completed: boolean;
+  is_verified: boolean;
+  notification_settings: Record<string, boolean>;
   banner_url: string | null;
   avatar_url: string | null;
   created_at: string;

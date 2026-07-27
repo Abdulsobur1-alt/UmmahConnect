@@ -143,7 +143,7 @@ export default function SignupForm() {
             career_stage: body.career_stage,
             city: body.city,
           },
-          emailRedirectTo: `${window.location.origin}/feed`,
+          emailRedirectTo: `${window.location.origin}/onboarding`,
         },
       });
 
@@ -172,7 +172,7 @@ export default function SignupForm() {
 
       // Redirect to feed — requireAuth() will auto-create the DB record
       // using the user_metadata we stored above (industry, city, etc.)
-      window.location.href = "/feed";
+      window.location.href = "/onboarding";
     } catch (err: any) {
       setLoading(false);
       setFormError(

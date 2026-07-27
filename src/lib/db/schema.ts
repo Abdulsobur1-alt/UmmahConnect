@@ -5,6 +5,7 @@ import {
   text,
   integer,
   boolean,
+  jsonb,
   timestamp,
   date,
   primaryKey,
@@ -57,6 +58,11 @@ export const users = pgTable("users", {
   bannerUrl: text("banner_url"),
   avatarUrl: text("avatar_url"),
   isBanned: boolean("is_banned").notNull().default(false),
+  isAdmin: boolean("is_admin").notNull().default(false),
+  isVerified: boolean("is_verified").notNull().default(false),
+  allowConnectionRequests: boolean("allow_connection_requests").notNull().default(true),
+  onboardingCompleted: boolean("onboarding_completed").notNull().default(false),
+  notificationSettings: jsonb("notification_settings").notNull().default({}),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -316,6 +322,60 @@ export const rateLimits = pgTable(
     ),
   }),
 );
+
+/* 18. Saved jobs and applications */
+export const savedJobs = pgTable(
+  "saved_jobs",
+  {
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    jobId: uuid("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.userId, table.jobId] }) }),
+);
+
+export const jobApplications = pgTable(
+  "job_applications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    jobId: uuid("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("submitted"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({ uniqueApplication: uniqueIndex("job_applications_user_job_key").on(table.userId, table.jobId) }),
+);
+
+/* 19. Trust, safety, and product insight */
+export const userBlocks = pgTable(
+  "user_blocks",
+  {
+    blockerId: uuid("blocker_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    blockedId: uuid("blocked_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.blockerId, table.blockedId] }) }),
+);
+
+export const reports = pgTable("reports", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  reporterId: uuid("reporter_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  reportedUserId: uuid("reported_user_id").references(() => users.id, { onDelete: "set null" }),
+  reason: text("reason").notNull(),
+  details: text("details"),
+  status: text("status").notNull().default("pending"),
+  reviewedBy: uuid("reviewed_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+});
+
+export const productEvents = pgTable("product_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+  event: text("event").notNull(),
+  properties: jsonb("properties").notNull().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 /* ─── Relations ─── */
 export const usersRelations = relations(users, ({ many }) => ({

@@ -20,6 +20,19 @@ export async function notifyUser(input: {
   content: string;
   referenceId?: string;
 }) {
+  const [recipient] = await db
+    .select({ notificationSettings: users.notificationSettings })
+    .from(users)
+    .where(eq(users.id, input.userId))
+    .limit(1);
+  const settings = (recipient?.notificationSettings ?? {}) as Record<string, boolean>;
+  const category = input.type.startsWith("connection") ? "connections"
+    : input.type === "message_received" ? "messages"
+    : input.type.startsWith("mentorship") ? "mentorship"
+    : input.type === "job_match" ? "jobs"
+    : input.type === "event_sponsored" ? "events"
+    : undefined;
+  if (category && settings[category] === false) return;
   await db.insert(notifications).values({
     userId: input.userId,
     type: input.type,

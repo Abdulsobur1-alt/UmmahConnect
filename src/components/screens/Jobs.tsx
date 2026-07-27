@@ -15,6 +15,7 @@ import { PageTransition, Stagger } from "@/components/ui/PageTransition";
 import { useToast } from "@/components/ui/Toast";
 import { apiGet, apiSend } from "@/lib/api/client";
 import { formatPostTime } from "@/lib/utils/time";
+import { trackMetric } from "@/lib/metrics";
 import type { Job, User } from "@/types";
 
 const filters = ["All", "Remote", "Finance", "Tech", "Creative", "Healthcare"];
@@ -25,11 +26,11 @@ export function Jobs() {
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const me = useQuery({ queryKey: ["me"], queryFn: () => apiGet<User>("/api/users/me") });
   const jobs = useQuery({ queryKey: ["jobs"], queryFn: () => apiGet<Job[]>("/api/jobs") });
+  const saved = useQuery({ queryKey: ["saved-jobs"], queryFn: () => apiGet<string[]>("/api/jobs/saved") });
   const postJob = useMutation({
     mutationFn: (body: Record<string, FormDataEntryValue | boolean>) => apiSend<Job>("/api/jobs", "POST", body),
     onSuccess: () => {
@@ -41,6 +42,23 @@ export function Jobs() {
       setShowUpgrade(true);
       toast("Job could not be posted.", "error");
     },
+  });
+  const saveJob = useMutation({
+    mutationFn: ({ jobId, isSaved }: { jobId: string; isSaved: boolean }) => apiSend<{ saved: boolean }>(`/api/jobs/${jobId}/save`, isSaved ? "DELETE" : "POST"),
+    onSuccess: (data) => {
+      void queryClient.invalidateQueries({ queryKey: ["saved-jobs"] });
+      toast(data.saved ? "Job saved" : "Job removed from saved roles", "success");
+      if (data.saved) trackMetric("job_saved");
+    },
+    onError: () => toast("Could not update saved jobs.", "error"),
+  });
+  const apply = useMutation({
+    mutationFn: (jobId: string) => apiSend<{ applied: boolean; already_applied: boolean }>(`/api/jobs/${jobId}/apply`, "POST"),
+    onSuccess: (data) => {
+      toast(data.already_applied ? "You already recorded interest in this role." : "Interest recorded. The poster has been notified.", "success");
+      trackMetric("job_application");
+    },
+    onError: () => toast("Could not record your interest. Please try again.", "error"),
   });
   const normalizedSearch = search.trim().toLowerCase();
   const filteredJobs = useMemo(() => {
@@ -67,18 +85,6 @@ export function Jobs() {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     postJob.mutate({ ...Object.fromEntries(new FormData(event.currentTarget).entries()), halal_confirmed: true });
-  }
-
-  function toggleSave(jobId: string) {
-    setSavedJobs((prev) => {
-      const next = new Set(prev);
-      if (next.has(jobId)) next.delete(jobId);
-      else {
-        next.add(jobId);
-        toast("Job saved", "success");
-      }
-      return next;
-    });
   }
 
   if (jobs.isLoading) return <div className="skeleton" />;
@@ -131,7 +137,7 @@ export function Jobs() {
       {/* Job cards */}
       <Stagger as="div" style={{ display: "grid", gap: 10 }}>
         {filteredJobs.map((job) => {
-          const isSaved = savedJobs.has(job.id);
+          const isSaved = saved.data?.includes(job.id) ?? false;
           return (
             <Card
               key={job.id}
@@ -225,7 +231,7 @@ export function Jobs() {
                       variant="ghost"
                       size="sm"
                       icon={<Bookmark size={14} fill={isSaved ? "var(--color-primary)" : "none"} />}
-                      onClick={(e) => { e.stopPropagation(); toggleSave(job.id); }}
+                      onClick={(e) => { e.stopPropagation(); saveJob.mutate({ jobId: job.id, isSaved }); }}
                     >
                       {isSaved ? "Saved" : "Save"}
                     </Button>
@@ -350,7 +356,8 @@ export function Jobs() {
           <button
             className="btn btn-primary"
             style={{ marginTop: 16, width: "100%", borderRadius: 100 }}
-            onClick={() => setSelectedJob(null)}
+            onClick={() => apply.mutate(selectedJob.id)}
+            disabled={apply.isPending}
           >
             Apply for this role
           </button>

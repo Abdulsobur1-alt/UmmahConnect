@@ -38,6 +38,14 @@ export async function POST(request: NextRequest) {
     const receiverId = body?.receiver_id;
     if (!receiverId) return fail("receiver_required", 400);
 
+    const [receiver] = await db
+      .select({ id: users.id, allowConnectionRequests: users.allowConnectionRequests })
+      .from(users)
+      .where(eq(users.id, receiverId))
+      .limit(1);
+    if (!receiver) return fail("receiver_not_found", 404);
+    if (!receiver.allowConnectionRequests) return fail("connection_requests_disabled", 403);
+
     const inserted = await db
       .insert(connections)
       .values({ requesterId: auth.userId, receiverId })

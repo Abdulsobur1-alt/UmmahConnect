@@ -14,6 +14,7 @@ import { ProgressBar, Tag } from "@/components/ui/Common";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/Toast";
 import { apiGet, apiSend } from "@/lib/api/client";
+import { trackMetric } from "@/lib/metrics";
 import type { Community, EventListing, Post, User } from "@/types";
 
 type Prayer = { name: string; time: string; minutes_until: number };
@@ -88,6 +89,7 @@ export function HomeFeed() {
     mutationFn: (content: string) => apiSend<Post>("/api/posts", "POST", { content }),
     onSuccess: () => {
       toast("Post shared with your community", "success");
+      trackMetric("post_created");
       void queryClient.invalidateQueries({ queryKey: ["posts"] });
     },
     onError: () => {

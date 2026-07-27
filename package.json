@@ -11,6 +11,9 @@
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio"
+    ,"db:migrate": "tsx scripts/migrate.ts"
+    ,"db:check": "tsx scripts/check-schema.ts"
+    ,"test": "tsx --test tests/**/*.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.3",

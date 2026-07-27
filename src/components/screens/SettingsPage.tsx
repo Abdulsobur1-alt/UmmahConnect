@@ -44,6 +44,10 @@ export function SettingsPage() {
     update.mutate({ full_name: String(form.get("full_name") ?? ""), city: String(form.get("city") ?? "") });
   }
 
+  function saveNotification(key: string, enabled: boolean) {
+    update.mutate({ notification_settings: { ...currentUser.notification_settings, [key]: enabled } } as Partial<User>);
+  }
+
   return (
     <PageTransition>
       <div className="screen-title"><div><h1>Settings</h1><p className="muted">Control profile visibility, account details, plan access, and alerts.</p></div></div>
@@ -85,7 +89,7 @@ export function SettingsPage() {
             <div className="row space-between" style={{ cursor: "pointer" }}>
               <span>Allow connection requests</span>
               <label className="toggle-switch">
-                <input type="checkbox" defaultChecked />
+                <input type="checkbox" defaultChecked={currentUser.allow_connection_requests} onChange={(event) => update.mutate({ allow_connection_requests: event.currentTarget.checked })} />
                 <span className="toggle-slider" />
               </label>
             </div>
@@ -101,11 +105,11 @@ export function SettingsPage() {
         {activeTab === "Notifications" ? (
           <div className="grid">
             <div className="row"><Bell color="var(--color-primary)" /><strong>Notification preferences</strong></div>
-            {["Connection requests", "New messages", "Mentorship updates", "Matching jobs", "Sponsored events"].map((item) => (
+            {[["connections", "Connection requests"], ["messages", "New messages"], ["mentorship", "Mentorship updates"], ["jobs", "Matching jobs"], ["events", "Sponsored events"]].map(([key, item]) => (
               <div key={item} className="row space-between" style={{ cursor: "pointer" }}>
                 <span>{item}</span>
                 <label className="toggle-switch">
-                  <input type="checkbox" defaultChecked />
+                  <input type="checkbox" checked={currentUser.notification_settings[key] !== false} onChange={(event) => saveNotification(key, event.currentTarget.checked)} />
                   <span className="toggle-slider" />
                 </label>
               </div>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ZodSchema } from "zod";
+import { logApiError } from "@/lib/observability";
 
 export type ApiResult<T> = {
   data: T | null;
@@ -18,8 +19,8 @@ export function fail(message: string, status = 400, details?: unknown) {
   );
 }
 
-export function serverError(error?: unknown, context = "api") {
-  if (error) console.error(`[${context.toUpperCase()} ERROR]`, error);
+export function serverError(error?: unknown, context = "api", request?: Request, userId?: string) {
+  if (error) logApiError({ route: context, error, request, userId });
   return fail("server_error", 500);
 }
 
@@ -63,7 +64,7 @@ export function withHandler(
         const typed = e as { status: number; message: string; details?: unknown };
         return fail(typed.message, typed.status, typed.details ?? null);
       }
-      console.error("[API Error]", e);
+      logApiError({ route: req.nextUrl.pathname, error: e, request: req });
       return fail("Internal server error", 500);
     }
   };

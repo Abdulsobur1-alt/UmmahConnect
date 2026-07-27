@@ -815,6 +815,29 @@ html[lang] { word-break:break-word; }
   .app-nav-inner { min-height:56px; flex-direction:row; }
 }
 
+/* Product foundations: onboarding and touch-first mobile refinements */
+.onboarding-shell { min-height:calc(100vh - 150px); display:grid; place-items:center; padding:24px 0 96px; }
+.onboarding-card { width:min(100%, 620px); }
+.onboarding-card h1 { margin:8px 0; font-family:var(--font-display); }
+.eyebrow { color:var(--color-accent); font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; }
+.onboarding-choice { display:flex; gap:12px; align-items:flex-start; padding:14px; border:1px solid var(--color-line); border-radius:12px; cursor:pointer; }
+.onboarding-choice input { width:20px; height:20px; margin-top:1px; accent-color:var(--color-primary); }
+.onboarding-choice strong,.onboarding-choice small { display:block; }
+.onboarding-choice small { color:var(--color-text-muted); line-height:1.45; margin-top:3px; }
+.form-error { color:#ff8b80; margin:0; }
+
+@media (max-width:768px) {
+  .app-main { padding:16px 14px calc(96px + env(safe-area-inset-bottom)) !important; }
+  .compose-card { border-radius:16px; }
+  .compose-card textarea { min-height:52px !important; font-size:16px !important; }
+  .bottom-nav { padding-bottom:env(safe-area-inset-bottom); min-height:calc(64px + env(safe-area-inset-bottom)); }
+  .bottom-nav-item { min-height:56px; min-width:52px; }
+  .card { border-radius:16px; }
+  .onboarding-shell { min-height:calc(100vh - 142px); padding:16px 0 92px; align-items:start; }
+  .onboarding-card { border-radius:16px; }
+  .thread-input { position:sticky; bottom:calc(64px + env(safe-area-inset-bottom)); background:var(--color-bg-secondary); padding-top:10px; }
+}
+
 /* Product experience refinement */
 .app-shell {
   background:

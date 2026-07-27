@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { useToast } from "@/components/ui/Toast";
 import { apiGet, apiSend } from "@/lib/api/client";
+import { trackMetric } from "@/lib/metrics";
 import { formatMessageTime } from "@/lib/utils/time";
 import type { Message, User } from "@/types";
 
@@ -32,6 +33,7 @@ export function Messages() {
     mutationFn: (content: string) => apiSend<{ message: Message; weekly_count: number }>(`/api/messages/${activeUserId}`, "POST", { content }),
     onSuccess: () => {
       toast("Message sent", "success");
+      trackMetric("message_sent");
       void queryClient.invalidateQueries({ queryKey: ["messages", activeUserId] });
       void queryClient.invalidateQueries({ queryKey: ["weekly-count"] });
     },

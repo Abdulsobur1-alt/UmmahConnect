@@ -10,6 +10,8 @@ const protectedPaths = [
   "/mentorship",
   "/discover",
   "/profile",
+  "/onboarding",
+  "/admin",
 ];
 
 const authPaths = ["/login", "/signup"];

@@ -4,6 +4,7 @@ import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { ok, fail } from "@/lib/api/helpers";
 import { userDto } from "@/lib/api/mappers";
+import { profileUpdateFields } from "@/lib/profile/update";
 
 export const dynamic = "force-dynamic";
 
@@ -38,48 +39,7 @@ export async function PATCH(req: Request) {
 
     const body = await req.json();
 
-    const allowed = [
-    "name",
-    "full_name",
-    "fullName",
-    "bio",
-    "industry",
-    "careerStage",
-    "career_stage",
-    "city",
-    "skills",
-    "openToOpportunities",
-    "open_to_opportunities",
-    "avatarUrl",
-    "avatar_url",
-    "bannerUrl",
-    "banner_url",
-    "showPhoto",
-    "show_photo",
-  ];
-
-    const fieldMap: Record<string, string> = {
-    name: "fullName",
-    full_name: "fullName",
-    fullName: "fullName",
-    avatar_url: "avatarUrl",
-    avatarUrl: "avatarUrl",
-    banner_url: "bannerUrl",
-    bannerUrl: "bannerUrl",
-    career_stage: "careerStage",
-    careerStage: "careerStage",
-    open_to_opportunities: "openToOpportunities",
-    openToOpportunities: "openToOpportunities",
-    show_photo: "showPhoto",
-    showPhoto: "showPhoto",
-  };
-
-    const update: Record<string, unknown> = {};
-    for (const key of Object.keys(body)) {
-      if (!allowed.includes(key)) continue;
-      const dbKey = fieldMap[key] ?? key;
-      update[dbKey] = body[key];
-    }
+    const update = profileUpdateFields(body);
     if (Object.keys(update).length === 0) return fail("no_valid_fields", 400);
     update.updatedAt = new Date();
 
