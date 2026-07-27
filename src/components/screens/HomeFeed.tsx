@@ -31,7 +31,7 @@ function LoadingFeed() {
 
 /* Live countdown hook for prayer times */
 function useCountdown(prayerData: Prayer | undefined) {
-  const [display, setDisplay] = useState(prayerData?.minutes_until ?? 0);
+  const [display, setDisplay] = useState((prayerData?.minutes_until ?? 0) * 60);
 
   useEffect(() => {
     if (!prayerData || !prayerData.time) {
@@ -46,17 +46,29 @@ function useCountdown(prayerData: Prayer | undefined) {
       const watNow = new Date(now.getTime() + 60 * 60 * 1000);
       const clean = prayerTime.split(" ")[0];
       const [h, m] = clean.split(":").map(Number);
-      const targetMin = h * 60 + m;
-      const currentMin = watNow.getUTCHours() * 60 + watNow.getUTCMinutes();
-      setDisplay(targetMin >= currentMin ? targetMin - currentMin : 24 * 60 - currentMin + targetMin);
+      const targetSeconds = (h * 60 + m) * 60;
+      const currentSeconds =
+        watNow.getUTCHours() * 60 * 60 + watNow.getUTCMinutes() * 60 + watNow.getUTCSeconds();
+      setDisplay(
+        targetSeconds >= currentSeconds
+          ? targetSeconds - currentSeconds
+          : 24 * 60 * 60 - currentSeconds + targetSeconds,
+      );
     }
 
     calc();
-    const interval = setInterval(calc, 60_000);
+    const interval = setInterval(calc, 1_000);
     return () => clearInterval(interval);
   }, [prayerData?.time, prayerData?.minutes_until]);
 
   return display;
+}
+
+function formatCountdown(totalSeconds: number) {
+  const hours = Math.floor(totalSeconds / 3_600);
+  const minutes = Math.floor((totalSeconds % 3_600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${hours > 0 ? `${hours}h ` : ""}${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
 }
 
 export function HomeFeed() {
@@ -130,7 +142,7 @@ export function HomeFeed() {
           <Sunrise size={16} color="var(--color-success)" />
           <span className="text-13" style={{ color: "rgba(255,255,255,0.8)" }}>
             {prayer.data
-              ? `Next prayer: ${prayer.data.name} · ${prayer.data.time} · in ${prayerMinutesUntil} min`
+              ? `Next prayer: ${prayer.data.name} · ${prayer.data.time} · in ${formatCountdown(prayerMinutesUntil)}`
               : "🌙 Maghrib · 7:42 PM · in 34 min"}
           </span>
         </div>

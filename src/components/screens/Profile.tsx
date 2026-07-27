@@ -292,32 +292,34 @@ export function Profile() {
           )}
         </div>
 
-        <InfoCard
-          icon={<MessageCircle size={16} color="var(--color-primary)" />}
-          title="Weekly messaging counter"
-          description="Free users can send and receive messages from anyone, including Pro users. Sending is limited to 10 messages per week."
-          extra={
-            <>
-              <ProgressBar value={weekly.data?.count ?? 0} height={8} />
-              <p style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", margin: "6px 0 0" }}>
-                {weekly.data?.count ?? 0} of 10 messages used this week
-              </p>
-            </>
-          }
-        />
+        <div className="profile-utility-grid">
+          <InfoCard
+            icon={<MessageCircle size={16} color="var(--color-primary)" />}
+            title="Weekly messaging counter"
+            description="Free users can send and receive messages from anyone, including Pro users. Sending is limited to 10 messages per week."
+            extra={
+              <>
+                <ProgressBar value={weekly.data?.count ?? 0} height={8} />
+                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", margin: "6px 0 0" }}>
+                  {weekly.data?.count ?? 0} of 10 messages used this week
+                </p>
+              </>
+            }
+          />
 
-        <InfoCard
-          icon={<Mail size={16} color="var(--color-primary)" />}
-          title="Opportunities"
-          description={currentUser.open_to_opportunities ? "Open to relevant roles and collaborations." : "Not currently open to opportunities."}
-          extra={
-            <div style={{ marginTop: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <Tag variant={currentUser.open_to_opportunities ? "green" : "dark"}>
-                {currentUser.open_to_opportunities ? "Open to Opportunities" : "Not open to opportunities"}
-              </Tag>
-            </div>
-          }
-        />
+          <InfoCard
+            icon={<Mail size={16} color="var(--color-primary)" />}
+            title="Opportunities"
+            description={currentUser.open_to_opportunities ? "Open to relevant roles and collaborations." : "Not currently open to opportunities."}
+            extra={
+              <div style={{ marginTop: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <Tag variant={currentUser.open_to_opportunities ? "green" : "dark"}>
+                  {currentUser.open_to_opportunities ? "Open to Opportunities" : "Not open to opportunities"}
+                </Tag>
+              </div>
+            }
+          />
+        </div>
       </div>
 
       {/* Edit Modal */}
