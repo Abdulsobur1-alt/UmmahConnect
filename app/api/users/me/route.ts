@@ -30,14 +30,15 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return fail("Unauthorised", 401);
-  }
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return fail("Unauthorised", 401);
+    }
 
-  const body = await req.json();
+    const body = await req.json();
 
-  const allowed = [
+    const allowed = [
     "name",
     "full_name",
     "fullName",
@@ -57,7 +58,7 @@ export async function PATCH(req: Request) {
     "show_photo",
   ];
 
-  const fieldMap: Record<string, string> = {
+    const fieldMap: Record<string, string> = {
     name: "fullName",
     full_name: "fullName",
     fullName: "fullName",
@@ -73,18 +74,23 @@ export async function PATCH(req: Request) {
     showPhoto: "showPhoto",
   };
 
-  const update: Record<string, unknown> = {};
-  for (const key of Object.keys(body)) {
-    if (!allowed.includes(key)) continue;
-    const dbKey = fieldMap[key] ?? key;
-    update[dbKey] = body[key];
+    const update: Record<string, unknown> = {};
+    for (const key of Object.keys(body)) {
+      if (!allowed.includes(key)) continue;
+      const dbKey = fieldMap[key] ?? key;
+      update[dbKey] = body[key];
+    }
+    if (Object.keys(update).length === 0) return fail("no_valid_fields", 400);
+    update.updatedAt = new Date();
+
+    await db
+      .update(users)
+      .set(update as any)
+      .where(eq(users.id, session.user.id));
+
+    return ok({ success: true });
+  } catch (error) {
+    console.error("[PROFILE UPDATE ERROR]", error);
+    return fail("profile_update_failed", 500);
   }
-  update.updatedAt = new Date().toISOString();
-
-  await db
-    .update(users)
-    .set(update as any)
-    .where(eq(users.id, session.user.id));
-
-  return ok({ success: true });
 }

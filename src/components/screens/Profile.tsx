@@ -36,7 +36,7 @@ export function Profile() {
     enabled: Boolean(me.data?.id),
   });
   const update = useMutation({
-    mutationFn: (body: Partial<User>) => apiSend<User>(`/api/users/${me.data?.id}`, "PATCH", body),
+    mutationFn: (body: Partial<User>) => apiSend<{ success: true }>("/api/users/me", "PATCH", body),
     onSuccess: () => {
       setEditing(false);
       setSavedSuccess(true);

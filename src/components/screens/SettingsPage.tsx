@@ -22,7 +22,7 @@ export function SettingsPage() {
   const queryClient = useQueryClient();
   const me = useQuery({ queryKey: ["me"], queryFn: () => apiGet<User>("/api/users/me") });
   const update = useMutation({
-    mutationFn: (body: Partial<User>) => apiSend<User>(`/api/users/${me.data?.id}`, "PATCH", body),
+    mutationFn: (body: Partial<User>) => apiSend<{ success: true }>("/api/users/me", "PATCH", body),
     onSuccess: () => {
       toast("Settings saved", "success");
       void queryClient.invalidateQueries({ queryKey: ["me"] });
