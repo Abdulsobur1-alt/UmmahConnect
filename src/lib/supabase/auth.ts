@@ -118,7 +118,9 @@ export async function requireAuth(): Promise<
         ? `${error.name}: ${error.message}\n${error.stack ?? "(no stack)"}`
         : JSON.stringify(error, null, 2),
     );
-    return { error: "unauthorized" };
+    // Database and Supabase outages must reach the route handler as 500s;
+    // returning "unauthorized" here falsely tells an authenticated member to log in.
+    throw error;
   }
 }
 

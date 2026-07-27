@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     await notifyUser({
       userId: receiverId,
-      type: "connection",
+      type: "connection_request",
       content: `${sender[0]?.fullName ?? "Someone"} sent you a connection request`,
       referenceId: inserted[0].id,
     });

@@ -10,8 +10,7 @@ node_modules
 .next
 dist
 
-# Drizzle migrations
-drizzle/
+# Drizzle migrations are source-controlled so database changes are reviewable.
 
 # Uploads (local dev only — for production use Cloudinary/etc)
 /public/uploads/*.jpg

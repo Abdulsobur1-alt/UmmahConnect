@@ -45,8 +45,16 @@ export async function POST(
     if ("error" in auth) return fail(auth.error, 401);
 
     const body = await request.json();
-    const content = body?.content;
+    const content = typeof body?.content === "string" ? body.content.trim() : "";
     if (!content) return fail("content_required", 400);
+    if (params.userId === auth.userId) return fail("cannot_message_yourself", 400);
+
+    const recipient = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, params.userId))
+      .limit(1);
+    if (!recipient[0]) return fail("recipient_not_found", 404);
 
     const weekStart = mondayWeekStart();
 
@@ -96,12 +104,16 @@ export async function POST(
       .where(eq(users.id, auth.userId))
       .limit(1);
 
-    await notifyUser({
-      userId: params.userId,
-      type: "message",
-      content: `New message from ${sender[0]?.fullName ?? "Someone"}`,
-      referenceId: inserted[0].id,
-    });
+    try {
+      await notifyUser({
+        userId: params.userId,
+        type: "message_received",
+        content: `New message from ${sender[0]?.fullName ?? "Someone"}`,
+        referenceId: inserted[0].id,
+      });
+    } catch (error) {
+      console.error("[MESSAGES NOTIFICATION ERROR]", error);
+    }
 
     // Broadcast realtime event via Supabase Realtime
     try {
@@ -119,7 +131,7 @@ export async function POST(
       { message: messageDto(inserted[0] as any), weekly_count: count + 1 },
       201,
     );
-  } catch {
-    return serverError();
+  } catch (error) {
+    return serverError(error, "messages.send");
   }
 }

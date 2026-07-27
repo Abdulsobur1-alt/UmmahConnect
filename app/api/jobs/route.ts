@@ -7,6 +7,8 @@ import { jobDto } from "@/lib/api/mappers";
 import { notifyUsersByIndustry } from "@/lib/api/notifications";
 import { fail, ok, serverError } from "@/lib/api/helpers";
 
+const jobTypes = new Set(["Full-time", "Part-time", "Contract", "Internship", "Hybrid"]);
+
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
@@ -37,8 +39,8 @@ export async function GET(request: NextRequest) {
 
     const data = await query;
     return ok((data ?? []).map((row: any) => jobDto({ ...row.jobs, users: row.users })));
-  } catch {
-    return serverError();
+  } catch (error) {
+    return serverError(error, "jobs.list");
   }
 }
 
@@ -52,6 +54,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     if (!body.title || !body.company) return fail("title_and_company_required", 400);
 
+    const jobType = typeof body.job_type === "string" && jobTypes.has(body.job_type)
+      ? body.job_type as "Full-time" | "Part-time" | "Contract" | "Internship" | "Hybrid"
+      : null;
+
     const inserted = await db
       .insert(jobs)
       .values({
@@ -62,7 +68,7 @@ export async function POST(request: NextRequest) {
         industry: body.industry ?? null,
         location: body.location ?? null,
         isRemote: body.is_remote ?? false,
-        jobType: body.job_type ?? null,
+        jobType,
         careerStage: body.career_stage ?? null,
         salaryRange: body.salary_range ?? null,
         isHalalVerified: body.halal_confirmed ?? true,
@@ -72,15 +78,19 @@ export async function POST(request: NextRequest) {
     if (!inserted[0]) return fail("create_failed", 400);
 
     if (body.industry) {
-      await notifyUsersByIndustry(
-        body.industry,
-        `New job posted: ${body.title} at ${body.company}`,
-        inserted[0].id,
-      );
+      try {
+        await notifyUsersByIndustry(
+          body.industry,
+          `New job posted: ${body.title} at ${body.company}`,
+          inserted[0].id,
+        );
+      } catch (error) {
+        console.error("[JOBS NOTIFICATION ERROR]", error);
+      }
     }
 
     return ok(jobDto(inserted[0] as any), 201);
-  } catch {
-    return serverError();
+  } catch (error) {
+    return serverError(error, "jobs.create");
   }
 }

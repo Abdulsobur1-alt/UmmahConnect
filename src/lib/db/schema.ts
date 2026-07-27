@@ -20,6 +20,25 @@ export const connectionStatusEnum = pgEnum("connection_status", [
   "accepted",
   "declined",
 ]);
+export const jobTypeEnum = pgEnum("job_type", [
+  "Full-time",
+  "Part-time",
+  "Contract",
+  "Internship",
+  "Hybrid",
+]);
+export const notificationTypeEnum = pgEnum("notif_type", [
+  "connection_request",
+  "connection_accepted",
+  "message_received",
+  "mentorship_request",
+  "mentorship_accepted",
+  "job_match",
+  "event_sponsored",
+  "post_liked",
+  "comment_received",
+  "payment_failed",
+]);
 
 /* ─── 1. Users ─── */
 export const users = pgTable("users", {
@@ -70,7 +89,6 @@ export const posts = pgTable("posts", {
   commentsCount: integer("comments_count").notNull().default(0),
   isDeleted: boolean("is_deleted").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 /* ─── 4. Post Likes ─── */
@@ -189,14 +207,13 @@ export const jobs = pgTable("jobs", {
   industry: text("industry"),
   location: text("location"),
   isRemote: boolean("is_remote").notNull().default(false),
-  jobType: text("job_type"),
+  jobType: jobTypeEnum("job_type"),
   careerStage: text("career_stage"),
   salaryRange: text("salary_range"),
   isHalalVerified: boolean("is_halal_verified").notNull().default(true),
   isActive: boolean("is_active").notNull().default(true),
   viewsCount: integer("views_count").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 /* ─── 12. Mentorship Profiles ─── */
@@ -256,7 +273,7 @@ export const notifications = pgTable("notifications", {
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  type: text("type").notNull(),
+  type: notificationTypeEnum("type").notNull(),
   content: text("content").notNull(),
   isRead: boolean("is_read").notNull().default(false),
   referenceId: uuid("reference_id"),

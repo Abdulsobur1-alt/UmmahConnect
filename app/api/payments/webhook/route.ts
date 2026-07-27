@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
 
       await notifyUser({
         userId,
-        type: "payment",
+        type: "payment_failed",
         content: "Your Pro payment failed. Please update your payment method.",
       });
     }

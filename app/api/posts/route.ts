@@ -25,8 +25,8 @@ export async function GET() {
         postDto({ ...row.posts, users: row.users }),
       ),
     );
-  } catch {
-    return serverError();
+  } catch (error) {
+    return serverError(error, "posts.list");
   }
 }
 
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     if (!inserted[0]) return fail("create_failed", 400);
     const fullPost = { ...inserted[0], users: result.profile };
     return ok(postDto(fullPost as any), 201);
-  } catch {
-    return serverError();
+  } catch (error) {
+    return serverError(error, "posts.create");
   }
 }

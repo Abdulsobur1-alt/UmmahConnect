@@ -18,7 +18,8 @@ export function fail(message: string, status = 400, details?: unknown) {
   );
 }
 
-export function serverError() {
+export function serverError(error?: unknown, context = "api") {
+  if (error) console.error(`[${context.toUpperCase()} ERROR]`, error);
   return fail("server_error", 500);
 }
 

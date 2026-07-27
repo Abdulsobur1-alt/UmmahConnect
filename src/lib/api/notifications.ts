@@ -2,9 +2,21 @@ import { db } from "@/lib/db/client";
 import { notifications, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
+type NotificationType =
+  | "connection_request"
+  | "connection_accepted"
+  | "message_received"
+  | "mentorship_request"
+  | "mentorship_accepted"
+  | "job_match"
+  | "event_sponsored"
+  | "post_liked"
+  | "comment_received"
+  | "payment_failed";
+
 export async function notifyUser(input: {
   userId: string;
-  type: string;
+  type: NotificationType;
   content: string;
   referenceId?: string;
 }) {
@@ -31,7 +43,7 @@ export async function notifyUsersByIndustry(
   await db.insert(notifications).values(
     userList.map((u) => ({
       userId: u.id,
-      type: "job",
+      type: "job_match" as NotificationType,
       content,
       referenceId: referenceId ?? null,
     })),
@@ -51,7 +63,7 @@ export async function notifyAllUsers(
     await db.insert(notifications).values(
       chunk.map((u) => ({
         userId: u.id,
-        type: "sponsored",
+        type: "event_sponsored" as NotificationType,
         content,
         referenceId: referenceId ?? null,
       })),

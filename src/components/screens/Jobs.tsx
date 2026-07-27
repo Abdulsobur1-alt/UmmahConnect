@@ -291,14 +291,15 @@ export function Jobs() {
             <Input name="company" placeholder="Company" required />
             <Input name="location" placeholder="Location" />
             <Input name="industry" placeholder="Industry" />
-            <select className="input" name="job_type" defaultValue="Remote">
-              <option>Remote</option>
-              <option>Hybrid</option>
-              <option>On-site</option>
+            <select className="input" name="job_type" defaultValue="Full-time">
               <option>Full-time</option>
+              <option>Part-time</option>
+              <option>Contract</option>
+              <option>Internship</option>
+              <option>Hybrid</option>
             </select>
             <label style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
-              <input type="checkbox" defaultChecked /> I confirm this role meets halal compliance expectations.
+              <input type="checkbox" name="halal_confirmed" defaultChecked /> I confirm this role meets halal compliance expectations.
             </label>
             <Button
               type="submit"

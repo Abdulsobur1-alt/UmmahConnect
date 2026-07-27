@@ -38,7 +38,7 @@ export async function PATCH(
 
       await notifyUser({
         userId: updated[0].requesterId,
-        type: "connection",
+        type: "connection_accepted",
         content: `${sender[0]?.fullName ?? "Someone"} accepted your connection request`,
         referenceId: updated[0].id,
       });
