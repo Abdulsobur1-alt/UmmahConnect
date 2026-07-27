@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Briefcase, Compass, Home, MessageCircle, Settings,
   Sparkles, UserRound, ChevronDown, LogOut, Bell, X,
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
-import { apiGet } from "@/lib/api/client";
+import { apiGet, apiSend } from "@/lib/api/client";
 import type { Notification, User } from "@/types";
 
 const navItems = [
@@ -31,6 +31,7 @@ const bottomTabs = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const queryClient = useQueryClient();
   const [showDropdown, setShowDropdown] = useState(false);
   const [dismissedNotif, setDismissedNotif] = useState<string | null>(null);
   const [dropdownAnimating, setDropdownAnimating] = useState(false);
@@ -42,6 +43,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     enabled: Boolean(currentUser),
   });
   const latestNotification = notifications.find((n) => !n.is_read);
+  const dismissNotification = useMutation({
+    mutationFn: (id: string) => apiSend(`/api/notifications/${id}/read`, "POST"),
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+  });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -168,7 +173,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Bell size={16} className="bell-icon" />
           <span className="banner-text">{latestNotification.content}</span>
           <button className="notif-banner-close"
-            onClick={() => setDismissedNotif(latestNotification.id)}
+            onClick={() => {
+              setDismissedNotif(latestNotification.id);
+              dismissNotification.mutate(latestNotification.id);
+            }}
             aria-label="Dismiss"
           >
             <X size={14} />

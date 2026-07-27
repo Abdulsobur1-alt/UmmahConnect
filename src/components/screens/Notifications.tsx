@@ -50,13 +50,13 @@ export function Notifications() {
   const me = useQuery({ queryKey: ["me"], queryFn: () => apiGet<User>("/api/users/me") });
   const notifications = useQuery({ queryKey: ["notifications"], queryFn: () => apiGet<Notification[]>("/api/notifications") });
   const markAll = useMutation({
-    mutationFn: () => apiSend("/api/notifications/read", "PATCH"),
+    mutationFn: () => apiSend("/api/notifications/read", "POST"),
     onSuccess: () => {
       toast("All marked as read", "success");
       void queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
-  const markOne = useMutation({ mutationFn: (id: string) => apiSend(`/api/notifications/${id}/read`, "PATCH"), onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["notifications"] }) });
+  const markOne = useMutation({ mutationFn: (id: string) => apiSend(`/api/notifications/${id}/read`, "POST"), onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["notifications"] }) });
   const acceptConnection = useMutation({
     mutationFn: (input: { connectionId: string; notificationId: string }) => apiSend(`/api/connections/${input.connectionId}`, "PATCH", { status: "accepted" }),
     onSuccess: (_, input) => {
@@ -136,7 +136,7 @@ export function Notifications() {
                       {!notification.is_read && (
                         <span className="pill" style={{ fontSize: 10, padding: "2px 8px" }}>New</span>
                       )}
-                      {notification.type === "connection" && notification.reference_id ? (
+                      {notification.type === "connection_request" && notification.reference_id ? (
                         <Button
                           variant="accent"
                           size="sm"
