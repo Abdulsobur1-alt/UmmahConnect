@@ -13,8 +13,7 @@ import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { apiGet, apiSend } from "@/lib/api/client";
 import { formatPostTime } from "@/lib/utils/time";
-import { InfoCard, ProgressBar, Tag } from "@/components/ui/Common";
-import { MOCK_CURRENT_USER } from "@/lib/mock";
+import { ErrorState, InfoCard, ProgressBar, Tag } from "@/components/ui/Common";
 import type { Post, User } from "@/types";
 
 export function Profile() {
@@ -51,7 +50,10 @@ export function Profile() {
   });
 
   if (me.isLoading) return <div className="skeleton" />;
-  const currentUser = me.data ?? MOCK_CURRENT_USER;
+  if (me.error || !me.data) {
+    return <ErrorState onRetry={() => void me.refetch()} title="Profile did not load" />;
+  }
+  const currentUser = me.data;
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

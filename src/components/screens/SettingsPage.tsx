@@ -11,7 +11,6 @@ import { Modal } from "@/components/ui/Modal";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { useToast } from "@/components/ui/Toast";
 import { apiGet, apiSend } from "@/lib/api/client";
-import { MOCK_CURRENT_USER } from "@/lib/mock";
 import type { User } from "@/types";
 
 const tabs = ["Account", "Privacy", "Plan", "Notifications"];
@@ -34,7 +33,10 @@ export function SettingsPage() {
   });
 
   if (me.isLoading) return <div className="skeleton" />;
-  const currentUser = me.data ?? MOCK_CURRENT_USER;
+  if (me.error || !me.data) {
+    return <Card padding="lg">Settings did not load. Please refresh and try again.</Card>;
+  }
+  const currentUser = me.data;
 
   function saveAccount(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

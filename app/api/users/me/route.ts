@@ -3,6 +3,7 @@ import { db } from "@/lib/db/client";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { ok, fail } from "@/lib/api/helpers";
+import { userDto } from "@/lib/api/mappers";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,14 @@ export async function GET() {
     .where(eq(users.id, session.user.id))
     .limit(1);
 
-  return ok(user ?? null);
+  // Keep this endpoint's response consistent with every other user endpoint.
+  // Drizzle rows use camelCase property names, while the client API contract
+  // uses snake_case (for example, full_name).
+  if (!user) {
+    return fail("profile_not_found", 404);
+  }
+
+  return ok(userDto(user));
 }
 
 export async function PATCH(req: Request) {
