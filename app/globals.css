@@ -445,7 +445,7 @@ button { cursor: pointer; }
 .chevron-icon--open { transform:rotate(180deg); }
 
 /* Message styles */
-.conversation-btn { width:100%; border:0; border-radius:0; padding:12px 14px; color:#fff; text-align:left; cursor:pointer; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--color-line); position:relative; min-height:44px; transition:background var(--duration-fast) ease; }
+.conversation-btn { width:100%; border:0; border-radius:0; padding:12px 14px; color:#fff; background:transparent; text-align:left; cursor:pointer; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--color-line); position:relative; min-height:44px; transition:background var(--duration-fast) ease; }
 .conversation-btn:hover { background:rgba(255,255,255,0.03); }
 .conversation-btn--active { background:rgba(26,107,92,0.12); }
 .conversation-btn--active:hover { background:rgba(26,107,92,0.12); }
@@ -454,6 +454,7 @@ button { cursor: pointer; }
 .thread-header { display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--color-line); padding-bottom:12px; }
 .thread-messages { flex:1; overflow-y:auto; display:flex; flex-direction:column; justify-content:flex-end; padding:16px 0; gap:8px; }
 .thread-input { display:flex; align-items:center; gap:8px; border-top:1px solid var(--color-line); padding-top:12px; }
+.messages-layout { display:grid; grid-template-columns:minmax(270px, .85fr) minmax(0, 1.45fr); align-items:stretch; }
 
 /* Notification styles */
 .notif-group-label { font-size:14px; font-weight:700; color:var(--color-text-muted); margin:0 0 8px; text-transform:uppercase; letter-spacing:0.5px; }
@@ -748,6 +749,7 @@ html[lang] { word-break:break-word; }
 /* Responsive */
 @media (max-width:860px) {
   .two-col, .three-col { grid-template-columns:1fr }
+  .messages-layout { grid-template-columns:1fr; }
   .app-nav-inner { align-items:flex-start; flex-direction:column; padding:14px 0 }
   .nav-links { width:100%; overflow-x:auto; flex-wrap:nowrap; padding-bottom:4px }
   .screen-title { align-items:flex-start; flex-direction:column }
@@ -836,6 +838,8 @@ html[lang] { word-break:break-word; }
   .onboarding-shell { min-height:calc(100vh - 142px); padding:16px 0 92px; align-items:start; }
   .onboarding-card { border-radius:16px; }
   .thread-input { position:sticky; bottom:calc(64px + env(safe-area-inset-bottom)); background:var(--color-bg-secondary); padding-top:10px; }
+  .messages-layout > :first-child { max-height:236px; overflow-y:auto !important; }
+  .messages-layout > :last-child { min-height:500px !important; }
 }
 
 /* Product experience refinement */

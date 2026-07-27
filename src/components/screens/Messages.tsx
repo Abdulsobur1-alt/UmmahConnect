@@ -89,7 +89,7 @@ export function Messages() {
           <p className="muted text-13" style={{ margin: "4px 0 0" }}>Weekly limits or network issues may be blocking this send.</p>
         </Card>
       ) : null}
-      <div className="grid two-col" style={{ gap: 14 }}>
+      <div className="messages-layout" style={{ gap: 14 }}>
         {/* Conversation list */}
         <Card padding="none" className="flex-col" style={{ overflow: "hidden" }}>
           {(users.data ?? []).length === 0 ? (
