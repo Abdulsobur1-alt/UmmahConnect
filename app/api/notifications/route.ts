@@ -3,6 +3,7 @@ import { notifications } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { requireAuth } from "@/lib/api/auth";
 import { fail, ok, serverError } from "@/lib/api/helpers";
+import { notificationDto } from "@/lib/api/mappers";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +19,10 @@ export async function GET() {
       .orderBy(desc(notifications.createdAt))
       .limit(20);
 
-    return ok(data ?? []);
-  } catch {
-    return serverError();
+    // Keep the public API contract in snake_case. Drizzle returns camelCase,
+    // and returning those rows directly made every notification appear unread.
+    return ok((data ?? []).map(notificationDto));
+  } catch (error) {
+    return serverError(error, "notifications.list");
   }
 }

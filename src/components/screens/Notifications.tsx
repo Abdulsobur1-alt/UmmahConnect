@@ -13,12 +13,29 @@ import { formatPostTime } from "@/lib/utils/time";
 import type { Notification, User } from "@/types";
 
 const iconByType: Record<string, typeof Bell> = {
-  connection: Users,
-  message: MessageCircle,
-  job: Briefcase,
-  mentor: Sparkles,
-  mentorship: Sparkles,
-  payment: CreditCard,
+  connection_request: Users,
+  connection_accepted: Users,
+  message_received: MessageCircle,
+  mentorship_request: Sparkles,
+  mentorship_accepted: Sparkles,
+  job_match: Briefcase,
+  event_sponsored: Bell,
+  post_liked: Bell,
+  comment_received: MessageCircle,
+  payment_failed: CreditCard,
+};
+
+const labelByType: Record<string, string> = {
+  connection_request: "Connection request",
+  connection_accepted: "Connection accepted",
+  message_received: "New message",
+  mentorship_request: "Mentorship request",
+  mentorship_accepted: "Mentorship accepted",
+  job_match: "Job match",
+  event_sponsored: "Sponsored event",
+  post_liked: "Post liked",
+  comment_received: "New comment",
+  payment_failed: "Payment update",
 };
 
 function groupNotifications(items: Notification[]) {
@@ -34,10 +51,15 @@ function groupNotifications(items: Notification[]) {
   ];
 
   for (const item of items) {
-    const dateStr = new Date(item.created_at).toDateString();
+    const date = new Date(item.created_at);
+    if (Number.isNaN(date.getTime())) {
+      groups[3].items.push(item);
+      continue;
+    }
+    const dateStr = date.toDateString();
     if (dateStr === today) groups[0].items.push(item);
     else if (dateStr === yesterday) groups[1].items.push(item);
-    else if (Date.now() - new Date(item.created_at).getTime() < 7 * 86400000) groups[2].items.push(item);
+    else if (Date.now() - date.getTime() < 7 * 86400000) groups[2].items.push(item);
     else groups[3].items.push(item);
   }
 
@@ -55,8 +77,13 @@ export function Notifications() {
       toast("All marked as read", "success");
       void queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
+    onError: () => toast("Could not mark notifications as read. Try again.", "error"),
   });
-  const markOne = useMutation({ mutationFn: (id: string) => apiSend(`/api/notifications/${id}/read`, "POST"), onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["notifications"] }) });
+  const markOne = useMutation({
+    mutationFn: (id: string) => apiSend(`/api/notifications/${id}/read`, "POST"),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+    onError: () => toast("Could not mark this notification as read. Try again.", "error"),
+  });
   const acceptConnection = useMutation({
     mutationFn: (input: { connectionId: string; notificationId: string }) => apiSend(`/api/connections/${input.connectionId}`, "PATCH", { status: "accepted" }),
     onSuccess: (_, input) => {
@@ -81,7 +108,7 @@ export function Notifications() {
 
   return (
     <PageTransition>
-      <div className="screen-title">
+      <div className="screen-title notifications-header">
         <div><h1>Notifications</h1><p className="muted">Connection, message, mentorship, job, and sponsored event updates.</p></div>
         <Button variant="primary" icon={<CheckCheck size={17} />} onClick={() => markAll.mutate()}>Mark all as read</Button>
       </div>
@@ -107,12 +134,13 @@ export function Notifications() {
             <Stagger as="div" className="grid" style={{ gap: 8 }}>
               {group.items.map((notification) => {
                 const IconComponent = iconByType[notification.type] || Bell;
+                const typeLabel = labelByType[notification.type] ?? notification.type.replaceAll("_", " ");
                 return (                    <Card
                     key={notification.id}
                     padding="md"
-                    className="row"
+                    className={`row notification-card${notification.is_read ? "" : " notification-card--unread"}`}
                     style={{
-                      borderColor: notification.is_read ? "var(--color-line)" : "var(--color-accent)",
+                      borderColor: notification.is_read ? "var(--color-line)" : "rgba(94, 205, 181, 0.45)",
                     }}
                   >
                     <div
@@ -129,7 +157,7 @@ export function Notifications() {
                         {notification.content}
                       </strong>
                       <p className="notif-item-meta">
-                        {notification.type} · {formatPostTime(notification.created_at)}
+                        {typeLabel} · {formatPostTime(notification.created_at) || "Recently"}
                       </p>
                     </div>
                     <div className="row" style={{ gap: 6, flexShrink: 0 }}>
@@ -150,6 +178,7 @@ export function Notifications() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          disabled={markOne.isPending}
                           onClick={() => markOne.mutate(notification.id)}
                         >
                           Read

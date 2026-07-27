@@ -461,6 +461,8 @@ button { cursor: pointer; }
 .notif-icon { width:36px; height:36px; border-radius:var(--radius-full); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .notif-item-title { font-size:14px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .notif-item-meta { margin:2px 0 0; font-size:12px; color:var(--color-text-muted); }
+.notification-card { gap:12px; min-height:68px; transition:border-color var(--duration-fast) ease, background var(--duration-fast) ease; }
+.notification-card--unread { background:linear-gradient(90deg, rgba(94,205,181,0.07), transparent 64%); }
 
 /* Discover styles */
 .discover-scroll { display:flex; gap:12px; overflow-x:auto; padding-bottom:6px; }
@@ -784,6 +786,11 @@ html[lang] { word-break:break-word; }
   /* Fix oversized text on mobile */
   .screen-title h1 { font-size:28px !important; }
   .screen-title p { font-size:var(--text-small) !important; }
+  .notifications-header { gap:14px; margin-bottom:22px; }
+  .notifications-header .btn { width:auto; min-height:44px; }
+  .notification-card { align-items:flex-start; padding:14px !important; gap:10px; }
+  .notification-card > .row:last-child { width:100%; padding-left:46px; justify-content:flex-start; flex-wrap:wrap; }
+  .notification-card .btn { min-height:38px; }
   h1.font-display { font-size:var(--space-3xl) !important; }
   .card p, .card .muted, .card span:not(.pill):not(.btn) { font-size:var(--text-body); }
   .card strong:not(.sponsored-label) { font-size:15px; }
