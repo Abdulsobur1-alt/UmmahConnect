@@ -29,8 +29,15 @@ export function Discover() {
       toast("Connection request sent", "success");
       void queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
-    onError: () => {
-      toast("Connection request could not be sent.", "error");
+    onError: (error: Error) => {
+      const message = error.message === "connection_requests_disabled"
+        ? "This member is not accepting connection requests."
+        : error.message === "connection_request_exists"
+          ? "You already have a connection request with this member."
+          : error.message === "cannot_connect_with_yourself"
+            ? "You cannot connect with your own profile."
+            : "Connection request could not be sent.";
+      toast(message, "error");
     },
   });
   const [joinedCommunities, setJoinedCommunities] = useState<Set<string>>(new Set());

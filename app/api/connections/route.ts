@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db/client";
 import { connections, users } from "@/lib/db/schema";
-import { eq, or } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { requireAuth } from "@/lib/api/auth";
 import { notifyUser } from "@/lib/api/notifications";
 import { fail, ok, serverError } from "@/lib/api/helpers";
@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const receiverId = body?.receiver_id;
     if (!receiverId) return fail("receiver_required", 400);
+    if (receiverId === auth.userId) return fail("cannot_connect_with_yourself", 400);
 
     const [receiver] = await db
       .select({ id: users.id, allowConnectionRequests: users.allowConnectionRequests })
@@ -45,6 +46,18 @@ export async function POST(request: NextRequest) {
       .limit(1);
     if (!receiver) return fail("receiver_not_found", 404);
     if (!receiver.allowConnectionRequests) return fail("connection_requests_disabled", 403);
+
+    const [existing] = await db
+      .select({ id: connections.id })
+      .from(connections)
+      .where(
+        or(
+          and(eq(connections.requesterId, auth.userId), eq(connections.receiverId, receiverId)),
+          and(eq(connections.requesterId, receiverId), eq(connections.receiverId, auth.userId)),
+        ),
+      )
+      .limit(1);
+    if (existing) return fail("connection_request_exists", 409);
 
     const inserted = await db
       .insert(connections)
@@ -59,15 +72,19 @@ export async function POST(request: NextRequest) {
       .where(eq(users.id, auth.userId))
       .limit(1);
 
-    await notifyUser({
-      userId: receiverId,
-      type: "connection_request",
-      content: `${sender[0]?.fullName ?? "Someone"} sent you a connection request`,
-      referenceId: inserted[0].id,
-    });
+    try {
+      await notifyUser({
+        userId: receiverId,
+        type: "connection_request",
+        content: `${sender[0]?.fullName ?? "Someone"} sent you a connection request`,
+        referenceId: inserted[0].id,
+      });
+    } catch (error) {
+      console.error("[CONNECTION NOTIFICATION ERROR]", error);
+    }
 
     return ok(inserted[0], 201);
-  } catch {
-    return serverError();
+  } catch (error) {
+    return serverError(error, "connections.create", request);
   }
 }
