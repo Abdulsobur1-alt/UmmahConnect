@@ -43,6 +43,7 @@ export type Community = {
   is_private: boolean;
   member_count: number;
   created_at?: string;
+  is_joined?: boolean;
 };
 
 export type Job = {

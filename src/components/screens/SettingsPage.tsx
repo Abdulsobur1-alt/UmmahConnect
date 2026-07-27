@@ -41,7 +41,7 @@ export function SettingsPage() {
   function saveAccount(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    update.mutate({ full_name: String(form.get("full_name") ?? ""), email: String(form.get("email") ?? ""), city: String(form.get("city") ?? "") });
+    update.mutate({ full_name: String(form.get("full_name") ?? ""), city: String(form.get("city") ?? "") });
   }
 
   return (
@@ -53,7 +53,11 @@ export function SettingsPage() {
           <form className="grid" onSubmit={saveAccount}>
             <div className="row"><Shield color="var(--color-primary)" /><strong>Account profile</strong></div>
             <Input name="full_name" placeholder="Full name" defaultValue={currentUser.full_name} />
-            <Input name="email" placeholder="Email" type="email" defaultValue={currentUser.email} />
+            <div className="account-email" aria-label="Account email">
+              <span>Email address</span>
+              <strong>{currentUser.email}</strong>
+              <small>Email changes are managed through account verification.</small>
+            </div>
             <Input name="city" placeholder="City" defaultValue={currentUser.city} />
             <div className="row row--wrap" style={{ gap: 10 }}>
               <Button type="submit" loading={update.isPending}>Save account</Button>

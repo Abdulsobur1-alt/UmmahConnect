@@ -14,10 +14,7 @@ export async function GET() {
 
   // Check 2: Database connectivity
   try {
-    const countResult = await db
-      .select({ count: users.id })
-      .from(users)
-      .limit(1);
+    const countResult = await db.select().from(users).limit(1);
     checks["database"] = `connected (${countResult.length > 0 ? "has data" : "empty"})`;
   } catch (e) {
     const errMsg = e instanceof Error ? e.message : "unknown error";

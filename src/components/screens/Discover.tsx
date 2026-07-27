@@ -34,6 +34,21 @@ export function Discover() {
     },
   });
   const [joinedCommunities, setJoinedCommunities] = useState<Set<string>>(new Set());
+  const joinCommunity = useMutation({
+    mutationFn: (communityId: string) => apiSend(`/api/communities/${communityId}/join`, "POST"),
+    onSuccess: (_, communityId) => {
+      setJoinedCommunities((previous) => new Set(previous).add(communityId));
+      toast("Joined community", "success");
+      void queryClient.invalidateQueries({ queryKey: ["communities"] });
+    },
+    onError: (error: Error, communityId) => {
+      if (error.message === "already_member") {
+        setJoinedCommunities((previous) => new Set(previous).add(communityId));
+        return;
+      }
+      toast("Could not join this community. Please try again.", "error");
+    },
+  });
 
   // Shared styles to avoid repetition
   const sectionTitle = { fontSize: 18, fontWeight: 700, margin: "0 0 12px" };
@@ -58,15 +73,6 @@ export function Discover() {
 
   if (communities.isLoading) return <div className="skeleton" />;
   if (communities.error) return <ErrorState onRetry={() => void communities.refetch()} title="Discover did not load" />;
-
-  function toggleJoin(communityId: string) {
-    setJoinedCommunities((prev) => {
-      const next = new Set(prev);
-      if (next.has(communityId)) next.delete(communityId);
-      else next.add(communityId);
-      return next;
-    });
-  }
 
   return (
     <PageTransition>
@@ -153,7 +159,7 @@ export function Discover() {
         ) : (
           <div style={{ display: "grid", gap: 8 }}>
             {(search ? filteredCommunities : communities.data ?? []).slice(0, 6).map((community) => {
-              const isJoined = joinedCommunities.has(community.id);
+              const isJoined = joinedCommunities.has(community.id) || community.is_joined;
               return (
                 <div
                   key={community.id}
@@ -190,9 +196,10 @@ export function Discover() {
                   <Button
                     variant={isJoined ? "primary" : "outline"}
                     size="sm"
-                    onClick={() => toggleJoin(community.id)}
+                    disabled={Boolean(isJoined) || joinCommunity.isPending}
+                    onClick={() => joinCommunity.mutate(community.id)}
                   >
-                    {isJoined ? "Joined" : "Join"}
+                    {isJoined ? "Joined" : joinCommunity.isPending ? "Joining..." : "Join"}
                   </Button>
                 </div>
               );

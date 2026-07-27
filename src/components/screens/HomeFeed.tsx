@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarDays, Send, Star, Sunrise,
-  MessageSquare, Image, Globe, FileText, Sparkles,
+  MessageSquare, Sparkles,
 } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import { Avatar } from "@/components/Avatar";
@@ -59,7 +59,7 @@ function useCountdown(prayerData: Prayer | undefined) {
     calc();
     const interval = setInterval(calc, 1_000);
     return () => clearInterval(interval);
-  }, [prayerData?.time, prayerData?.minutes_until]);
+  }, [prayerData]);
 
   return display;
 }
@@ -179,23 +179,7 @@ export function HomeFeed() {
             />
           </div>
           <div className="flex-between mt-md">
-            <div className="row" style={{ gap: 6 }}>
-              {[
-                { icon: Image, label: "Photo" },
-                { icon: Globe, label: "Community" },
-                { icon: FileText, label: "Article" },
-              ].map(({ icon: Icon, label }) => (
-                <Button
-                  key={label}
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  icon={<Icon size={14} />}
-                >
-                  {label}
-                </Button>
-              ))}
-            </div>
+            <span className="compose-supporting-text">Share an update with your community</span>
             <Button
               type="submit"
               disabled={createPost.isPending}
