@@ -73,6 +73,25 @@ export async function requireAuth(): Promise<
       userEmail.split("@")[0] ??
       "New Member";
 
+    // Older accounts can have been created before Supabase became the source
+    // of authentication. In that case the email is still the verified identity,
+    // but the database UUID differs from the Supabase UUID. Reuse that profile
+    // rather than allowing the unique-email insert to no-op and returning a
+    // user ID for which no profile exists.
+    const [legacyProfile] = await db
+      .select({ id: users.id, email: users.email, plan: users.plan })
+      .from(users)
+      .where(eq(users.email, userEmail))
+      .limit(1);
+
+    if (legacyProfile) {
+      return {
+        userId: legacyProfile.id,
+        email: legacyProfile.email,
+        plan: legacyProfile.plan ?? "free",
+      };
+    }
+
     await db
       .insert(users)
       .values({
