@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db/client";
 import { connections, users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { requireAuth } from "@/lib/api/auth";
 import { notifyUser } from "@/lib/api/notifications";
 import { fail, ok, serverError } from "@/lib/api/helpers";
@@ -24,8 +24,13 @@ export async function PATCH(
     const updated = await db
       .update(connections)
       .set({ status })
-      .where(eq(connections.id, params.id))
-      .returning();
+      .where(and(eq(connections.id, params.id), eq(connections.receiverId, auth.userId)))
+      .returning({
+        id: connections.id,
+        requesterId: connections.requesterId,
+        receiverId: connections.receiverId,
+        status: connections.status,
+      });
 
     if (!updated[0]) return fail("not_found", 404);
 
@@ -36,16 +41,20 @@ export async function PATCH(
         .where(eq(users.id, auth.userId))
         .limit(1);
 
-      await notifyUser({
-        userId: updated[0].requesterId,
-        type: "connection_accepted",
-        content: `${sender[0]?.fullName ?? "Someone"} accepted your connection request`,
-        referenceId: updated[0].id,
-      });
+      try {
+        await notifyUser({
+          userId: updated[0].requesterId,
+          type: "connection_accepted",
+          content: `${sender[0]?.fullName ?? "Someone"} accepted your connection request`,
+          referenceId: updated[0].id,
+        });
+      } catch (error) {
+        console.error("[CONNECTION ACCEPT NOTIFICATION ERROR]", error);
+      }
     }
 
     return ok(updated[0]);
-  } catch {
-    return serverError();
+  } catch (error) {
+    return serverError(error, "connections.update", request);
   }
 }

@@ -9,6 +9,7 @@ const expected: Record<string, string[]> = {
   jobs: ["id", "posted_by", "title", "created_at"],
   messages: ["id", "sender_id", "receiver_id", "content", "created_at"],
   notifications: ["id", "user_id", "type", "content"],
+  connections: ["id", "requester_id", "receiver_id", "status", "created_at", "updated_at"],
   saved_jobs: ["user_id", "job_id", "created_at"],
   job_applications: ["id", "user_id", "job_id", "status"],
   user_blocks: ["blocker_id", "blocked_id"],

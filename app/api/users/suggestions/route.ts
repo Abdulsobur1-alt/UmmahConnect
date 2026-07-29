@@ -1,6 +1,6 @@
 import { db } from "@/lib/db/client";
-import { users } from "@/lib/db/schema";
-import { ne } from "drizzle-orm";
+import { connections, users } from "@/lib/db/schema";
+import { and, eq, ne, or } from "drizzle-orm";
 import { requireAuth } from "@/lib/api/auth";
 import { userDto } from "@/lib/api/mappers";
 import { fail, ok, serverError } from "@/lib/api/helpers";
@@ -12,11 +12,24 @@ export async function GET() {
     const auth = await requireAuth();
     if ("error" in auth) return fail(auth.error, 401);
 
-    const data = await db
+    const [candidates, existingConnections] = await Promise.all([
+      db
       .select()
       .from(users)
-      .where(ne(users.id, auth.userId))
-      .limit(12);
+      .where(and(ne(users.id, auth.userId), ne(users.email, auth.email)))
+      .limit(50),
+      db
+        .select({ requesterId: connections.requesterId, receiverId: connections.receiverId })
+        .from(connections)
+        .where(or(eq(connections.requesterId, auth.userId), eq(connections.receiverId, auth.userId))),
+    ]);
+
+    const relatedUserIds = new Set(
+      existingConnections.map((connection) =>
+        connection.requesterId === auth.userId ? connection.receiverId : connection.requesterId,
+      ),
+    );
+    const data = candidates.filter((user) => !relatedUserIds.has(user.id)).slice(0, 12);
 
     return ok((data ?? []).map(userDto as any));
   } catch {

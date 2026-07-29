@@ -28,6 +28,7 @@ export function Discover() {
     onSuccess: () => {
       toast("Connection request sent", "success");
       void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      void queryClient.invalidateQueries({ queryKey: ["suggested-users"] });
     },
     onError: (error: Error) => {
       const message = error.message === "connection_requests_disabled"
@@ -36,6 +37,8 @@ export function Discover() {
           ? "You already have a connection request with this member."
           : error.message === "cannot_connect_with_yourself"
             ? "You cannot connect with your own profile."
+            : error.message === "receiver_not_found"
+              ? "This member is no longer available."
             : "Connection request could not be sent.";
       toast(message, "error");
     },
@@ -151,11 +154,6 @@ export function Discover() {
       {/* SECTION 3 — Communities for you */}
       <section>
         <h2 style={sectionTitle}>Communities for you</h2>
-        {connect.error ? (
-          <p style={{ fontSize: 13, color: "var(--color-text-muted)", marginBottom: 8 }}>
-            Connection request could not be sent.
-          </p>
-        ) : null}
         {(search ? filteredCommunities : communities.data ?? []).length === 0 ? (
           <EmptyState
             icon={<Globe size={24} />}

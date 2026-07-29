@@ -14,7 +14,13 @@ export async function GET() {
     if ("error" in auth) return fail(auth.error, 401);
 
     const data = await db
-      .select()
+      .select({
+        id: connections.id,
+        requester_id: connections.requesterId,
+        receiver_id: connections.receiverId,
+        status: connections.status,
+        created_at: connections.createdAt,
+      })
       .from(connections)
       .where(
         or(
@@ -62,7 +68,13 @@ export async function POST(request: NextRequest) {
     const inserted = await db
       .insert(connections)
       .values({ requesterId: auth.userId, receiverId })
-      .returning();
+      .returning({
+        id: connections.id,
+        requester_id: connections.requesterId,
+        receiver_id: connections.receiverId,
+        status: connections.status,
+        created_at: connections.createdAt,
+      });
 
     if (!inserted[0]) return fail("create_failed", 400);
 
