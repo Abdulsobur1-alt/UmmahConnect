@@ -2,10 +2,11 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  CalendarDays, Send, Star, Sunrise,
-  MessageSquare, Sparkles,
+  CalendarDays, CheckCircle, Send, Star, Sunrise,
+  MessageSquare, Sparkles, X,
 } from "lucide-react";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, Suspense, useEffect, useRef, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -69,6 +70,48 @@ function formatCountdown(totalSeconds: number) {
   const minutes = Math.floor((totalSeconds % 3_600) / 60);
   const seconds = totalSeconds % 60;
   return `${hours > 0 ? `${hours}h ` : ""}${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
+}
+
+function PaymentCelebration() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { toast } = useToast();
+  const [visible, setVisible] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const payment = searchParams.get("payment");
+    if (payment === "success") {
+      setVisible(true);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("payment");
+      router.replace(url.pathname + url.search);
+    } else if (payment === "failed") {
+      toast("Payment did not complete. You can try again from Settings.", "error");
+      const url = new URL(window.location.href);
+      url.searchParams.delete("payment");
+      router.replace(url.pathname + url.search);
+      setVisible(false);
+    } else {
+      setVisible(false);
+    }
+  }, [searchParams, router, toast]);
+
+  if (!visible) return null;
+
+  return (
+    <div className="payment-celebration animate-scale-in">
+      <button className="payment-celebration-close" onClick={() => setVisible(false)} aria-label="Dismiss">
+        <X size={14} />
+      </button>
+      <CheckCircle size={24} className="payment-celebration-icon" />
+      <div>
+        <strong className="payment-celebration-title">Payment successful! 🎉</strong>
+        <p className="payment-celebration-text">
+          Welcome to Pro! You now have unlimited messaging, job posting, mentorship matching, and more.
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export function HomeFeed() {
@@ -138,6 +181,11 @@ export function HomeFeed() {
 
   return (
     <div className="animate-fade-in">
+      {/* Payment success celebration (wrapped in Suspense for useSearchParams) */}
+      <Suspense fallback={null}>
+        <PaymentCelebration />
+      </Suspense>
+
       {/* Feed header */}
       <div className="mb-lg">
         <div className="animate-fade-in text-16 text-muted-color mb-sm">

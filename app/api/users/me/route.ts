@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db/client";
-import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { users, subscriptions } from "@/lib/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { ok, fail } from "@/lib/api/helpers";
 import { userDto } from "@/lib/api/mappers";
 import { profileUpdateFields } from "@/lib/profile/update";
@@ -21,14 +21,25 @@ export async function GET() {
     .where(eq(users.id, session.user.id))
     .limit(1);
 
-  // Keep this endpoint's response consistent with every other user endpoint.
-  // Drizzle rows use camelCase property names, while the client API contract
-  // uses snake_case (for example, full_name).
   if (!user) {
     return fail("profile_not_found", 404);
   }
 
-  return ok(userDto(user));
+  // Fetch the most recent subscription record for this user
+  const [sub] = await db
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.userId, session.user.id))
+    .orderBy(desc(subscriptions.createdAt))
+    .limit(1);
+
+  const profile = userDto(user);
+
+  return ok({
+    ...profile,
+    subscription_status: sub?.status ?? null,
+    subscription_period_end: sub?.currentPeriodEnd?.toISOString() ?? null,
+  });
 }
 
 export async function PATCH(req: Request) {
