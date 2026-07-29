@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserPlus, Globe, Users, CalendarDays, Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -23,6 +24,7 @@ export function Discover() {
   const users = useQuery({ queryKey: ["suggested-users"], queryFn: () => apiGet<User[]>("/api/users/suggestions") });
   const jobs = useQuery({ queryKey: ["jobs"], queryFn: () => apiGet<Job[]>("/api/jobs") });
   const events = useQuery({ queryKey: ["events"], queryFn: () => apiGet<EventListing[]>("/api/events") });
+  const searchResults = useQuery({ queryKey: ["universal-search", search.trim()], queryFn: () => apiGet<any>(`/api/search?q=${encodeURIComponent(search.trim())}`), enabled: search.trim().length >= 2 });
   const connect = useMutation({
     mutationFn: (receiver_id: string) => apiSend("/api/connections", "POST", { receiver_id }),
     onSuccess: () => {
@@ -95,6 +97,18 @@ export function Discover() {
         onChange={(event) => setSearch(event.currentTarget.value)}
         className="search-input"
       />
+
+      {search.trim().length >= 2 ? (
+        <section className="search-results-card">
+          <h2 className="section-title">Results for “{search.trim()}”</h2>
+          {searchResults.isLoading ? <div className="skeleton" /> : <div className="search-results-grid">
+            {(searchResults.data?.users ?? []).map((user: User) => <Link key={user.id} href={`/profiles/${user.id}`} className="search-result"><strong>{user.full_name}</strong><span>{[user.industry, user.city].filter(Boolean).join(" · ")}</span></Link>)}
+            {(searchResults.data?.topics ?? []).map((topic: string) => <button key={topic} className="search-result search-topic" onClick={() => setSearch(topic)}>{topic}</button>)}
+            {(searchResults.data?.announcements ?? []).map((item: any) => <Link key={item.id} href="/announcements" className="search-result"><strong>{item.title}</strong><span>{item.kind}</span></Link>)}
+            {(searchResults.data?.jobs ?? []).map((job: Job) => <Link key={job.id} href="/jobs" className="search-result"><strong>{job.title}</strong><span>{job.company}</span></Link>)}
+          </div>}
+        </section>
+      ) : null}
 
       {/* SECTION 2 — People you may know */}
       <section>

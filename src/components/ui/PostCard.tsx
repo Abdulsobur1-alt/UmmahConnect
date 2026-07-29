@@ -1,4 +1,5 @@
 import { Heart, MessageCircle, Share2 } from "lucide-react";
+import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -39,11 +40,11 @@ export function PostCard({
     >
       {/* Header */}
       <div className="row" style={{ alignItems: "flex-start" }}>
-        <Avatar name={post.user?.full_name ?? "User"} size={42} />
+        <Link href={`/profiles/${post.user_id}`} aria-label={`View ${post.user?.full_name ?? "member"} profile`}><Avatar name={post.user?.full_name ?? "User"} size={42} /></Link>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="flex-between">
             <div>
-              <strong style={{ fontSize: 15 }}>{post.user?.full_name ?? "Unknown"}</strong>
+              <Link href={`/profiles/${post.user_id}`} className="post-author-link"><strong style={{ fontSize: 15 }}>{post.user?.full_name ?? "Unknown"}</strong></Link>
               <div className="muted" style={{ fontSize: 13 }}>
                 {[post.user?.industry, post.user?.city].filter(Boolean).join(" · ") || ""}
               </div>
@@ -92,10 +93,10 @@ export function PostCard({
           />{" "}
           {post.likes_count}
         </Button>
-        <Button variant="ghost" size="sm" className="post-action-btn">
+        <Link href={`/posts/${post.id}`} className="btn post-action-btn">
           <MessageCircle size={16} /> {post.comments_count}
-        </Button>
-        <Button variant="ghost" size="sm" className="post-action-btn" style={{ marginLeft: "auto" }}>
+        </Link>
+        <Button variant="ghost" size="sm" className="post-action-btn" style={{ marginLeft: "auto" }} onClick={() => { const url = `${window.location.origin}/posts/${post.id}`; if (navigator.share) void navigator.share({ title: "Ummah Connect", text: post.content, url }); else void navigator.clipboard.writeText(url); }}>
           <Share2 size={16} /> Share
         </Button>
       </div>
