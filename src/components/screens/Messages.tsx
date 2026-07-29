@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { useToast } from "@/components/ui/Toast";
+import { ErrorState } from "@/components/ui/Common";
 import { apiGet, apiSend } from "@/lib/api/client";
 import { trackMetric } from "@/lib/metrics";
 import { isPremiumPlan } from "@/lib/plans";
@@ -110,6 +111,8 @@ export function Messages() {
   }
 
   if (conversations.isLoading) return <div className="skeleton" />;
+
+  if (conversations.error) return <ErrorState onRetry={() => void conversations.refetch()} title="Conversations did not load" />;
 
   return (
     <PageTransition>

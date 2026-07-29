@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { useToast } from "@/components/ui/Toast";
+import { ErrorState } from "@/components/ui/Common";
 import { apiGet, apiSend } from "@/lib/api/client";
 import type { User } from "@/types";
 
@@ -34,7 +35,7 @@ export function SettingsPage() {
 
   if (me.isLoading) return <div className="skeleton" />;
   if (me.error || !me.data) {
-    return <Card padding="lg">Settings did not load. Please refresh and try again.</Card>;
+    return <ErrorState onRetry={() => void me.refetch()} title="Settings did not load" />;
   }
   const currentUser = me.data;
 

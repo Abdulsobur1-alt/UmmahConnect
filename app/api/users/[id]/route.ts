@@ -36,9 +36,31 @@ export async function PATCH(
   try {
     const auth = await requireAuth();
     if ("error" in auth) return fail(auth.error, 401);
-    if (auth.userId !== params.id) return fail("forbidden", 403);
 
     const body = await request.json();
+
+    // Allow admins to ban/unban users
+    const isBanAction = body.is_banned !== undefined || body.isBanned !== undefined;
+    if (isBanAction) {
+      const [admin] = await db
+        .select({ isAdmin: users.isAdmin })
+        .from(users)
+        .where(eq(users.id, auth.userId))
+        .limit(1);
+      if (!admin?.isAdmin) return fail("forbidden", 403);
+
+      const [updated] = await db
+        .update(users)
+        .set({ isBanned: body.is_banned ?? body.isBanned, updatedAt: new Date() })
+        .where(eq(users.id, params.id))
+        .returning();
+      if (!updated) return fail("user_not_found", 404);
+      return ok({ banned: updated.isBanned });
+    }
+
+    // For non-ban updates, only the user themselves can edit
+    if (auth.userId !== params.id) return fail("forbidden", 403);
+
     const update: Record<string, unknown> = {};
     if (body.full_name !== undefined) update.fullName = body.full_name;
     if (body.fullName !== undefined) update.fullName = body.fullName;
@@ -52,7 +74,7 @@ export async function PATCH(
       update.openToOpportunities = body.open_to_opportunities;
     if (body.banner_url !== undefined) update.bannerUrl = body.banner_url;
     if (body.avatar_url !== undefined) update.avatarUrl = body.avatar_url;
-    update.updatedAt = new Date().toISOString();
+    update.updatedAt = new Date();
 
     const updated = await db
       .update(users)

@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageTransition, Stagger } from "@/components/ui/PageTransition";
 import { useToast } from "@/components/ui/Toast";
+import { ErrorState } from "@/components/ui/Common";
 import { apiGet, apiSend } from "@/lib/api/client";
 import { formatPostTime } from "@/lib/utils/time";
 import type { Notification, User } from "@/types";
@@ -160,12 +161,7 @@ export function Notifications() {
   }
 
   if (notifications.isLoading) return <div className="skeleton" />;
-  if (notifications.error) return (
-    <Card padding="lg">
-      <strong>Notifications did not load</strong>
-      <Button variant="primary" style={{ marginTop: 12 }} onClick={() => void notifications.refetch()}>Retry</Button>
-    </Card>
-  );
+  if (notifications.error) return <ErrorState onRetry={() => void notifications.refetch()} title="Notifications did not load" />;
 
   return (
     <PageTransition>

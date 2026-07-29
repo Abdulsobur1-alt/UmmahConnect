@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/Common";
 import { PageTransition, Stagger } from "@/components/ui/PageTransition";
 import { useToast } from "@/components/ui/Toast";
 import { apiGet, apiSend } from "@/lib/api/client";
@@ -27,6 +28,7 @@ export function Mentorship() {
     queryKey: ["my-mentorship-requests"],
     queryFn: () => apiGet<any[]>("/api/mentorship/requests"),
     enabled: activeTab === "My Requests" && isPremiumPlan(me.data?.plan),
+    retry: false,
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -45,6 +47,7 @@ export function Mentorship() {
   const currentUser = me.data;
   const list = mentors.data ?? profiles.data ?? [];
 
+  if (mentors.error && me.error) return <ErrorState onRetry={() => { void mentors.refetch(); void me.refetch(); }} title="Mentorship did not load" />;
   if (mentors.isLoading || me.isLoading) return <div className="skeleton" />;
 
   const profileTags = currentUser ? [currentUser.industry, currentUser.career_stage, currentUser.city].filter(Boolean) : [];

@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/Card";
 import { PostCard } from "@/components/ui/PostCard";
 import { Tag } from "@/components/ui/Common";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PageTransition } from "@/components/ui/PageTransition";
 import { useToast } from "@/components/ui/Toast";
 import { apiGet, apiSend } from "@/lib/api/client";
 import { trackMetric } from "@/lib/metrics";
@@ -179,7 +180,7 @@ export function HomeFeed() {
   }
 
   return (
-    <div className="animate-fade-in">
+    <PageTransition>
       {/* Feed header */}
       <div className="mb-lg">
         <div className="animate-fade-in text-16 text-muted-color mb-sm">
@@ -364,6 +365,6 @@ export function HomeFeed() {
           </article>
         </aside>
       </div>
-    </div>
+    </PageTransition>
   );
 }

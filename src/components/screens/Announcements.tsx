@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/Common";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PageTransition } from "@/components/ui/PageTransition";
@@ -55,6 +56,8 @@ export function Announcements() {
 
       {items.isLoading ? (
         <div className="skeleton" />
+      ) : items.error ? (
+        <ErrorState onRetry={() => void items.refetch()} title="Announcements did not load" />
       ) : (items.data ?? []).length === 0 ? (
         <EmptyState icon={<Megaphone size={28}/>} title="No announcements yet" description="Premium members can promote their next event, workshop, or class here." />
       ) : (

@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Modal } from "@/components/ui/Modal";
+import { PageTransition } from "@/components/ui/PageTransition";
 import { useToast } from "@/components/ui/Toast";
 import { apiGet, apiSend } from "@/lib/api/client";
 import { formatPostTime } from "@/lib/utils/time";
@@ -109,7 +110,7 @@ export function Profile() {
   const userPosts = posts.data?.filter((post) => post.user_id === currentUser.id) ?? [];
 
   return (
-    <div className="animate-fade-in">
+    <PageTransition>
       {/* Success toast */}
       {savedSuccess ? (
         <div className="success-banner animate-fade-in-down"
@@ -451,6 +452,6 @@ export function Profile() {
           </div>
         </Modal>
       ) : null}
-    </div>
+    </PageTransition>
   );
 }
