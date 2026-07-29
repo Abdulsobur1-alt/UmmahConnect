@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db/client";
-import { messages, messageWeeklyCounts, users } from "@/lib/db/schema";
+import { connections, messages, messageWeeklyCounts, users } from "@/lib/db/schema";
 import { eq, and, or, asc } from "drizzle-orm";
 import { requireAuth } from "@/lib/api/auth";
 import { mondayWeekStart } from "@/lib/api/business";
@@ -11,6 +11,23 @@ import { fail, ok, serverError } from "@/lib/api/helpers";
 
 export const dynamic = "force-dynamic";
 
+async function hasAcceptedConnection(userId: string, otherUserId: string) {
+  const [relationship] = await db
+    .select({ id: connections.id })
+    .from(connections)
+    .where(
+      and(
+        eq(connections.status, "accepted"),
+        or(
+          and(eq(connections.requesterId, userId), eq(connections.receiverId, otherUserId)),
+          and(eq(connections.requesterId, otherUserId), eq(connections.receiverId, userId)),
+        ),
+      ),
+    )
+    .limit(1);
+  return Boolean(relationship);
+}
+
 export async function GET(
   _: Request,
   { params }: { params: { userId: string } },
@@ -18,6 +35,7 @@ export async function GET(
   try {
     const auth = await requireAuth();
     if ("error" in auth) return fail(auth.error, 401);
+    if (!(await hasAcceptedConnection(auth.userId, params.userId))) return fail("connection_required", 403);
 
     const data = await db
       .select()
@@ -48,6 +66,7 @@ export async function POST(
     const content = typeof body?.content === "string" ? body.content.trim() : "";
     if (!content) return fail("content_required", 400);
     if (params.userId === auth.userId) return fail("cannot_message_yourself", 400);
+    if (!(await hasAcceptedConnection(auth.userId, params.userId))) return fail("connection_required", 403);
 
     const recipient = await db
       .select({ id: users.id })

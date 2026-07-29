@@ -1,234 +1,135 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { MessageCircle, Send } from "lucide-react";
-import { MessageBubble } from "@/components/ui/MessageBubble";
+import { LockKeyhole, MessageCircle, Send } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Avatar } from "@/components/Avatar";
+import { MessageBubble } from "@/components/ui/MessageBubble";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { useToast } from "@/components/ui/Toast";
 import { apiGet, apiSend } from "@/lib/api/client";
 import { trackMetric } from "@/lib/metrics";
-import { formatMessageTime } from "@/lib/utils/time";
 import type { Message, User } from "@/types";
 
 export function Messages() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const me = useQuery({ queryKey: ["me"], queryFn: () => apiGet<User>("/api/users/me") });
-  const users = useQuery({ queryKey: ["suggested-users"], queryFn: () => apiGet<User[]>("/api/users/suggestions") });
-  const [activeUserId, setActiveUserId] = useState<string>("");
+  const conversations = useQuery({ queryKey: ["message-conversations"], queryFn: () => apiGet<User[]>("/api/messages/conversations") });
   const weekly = useQuery({ queryKey: ["weekly-count"], queryFn: () => apiGet<{ count: number; remaining: number }>("/api/messages/weekly-count") });
+  const [activeUserId, setActiveUserId] = useState("");
+  const [draft, setDraft] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
   const thread = useQuery({
     queryKey: ["messages", activeUserId],
     queryFn: () => apiGet<Message[]>(`/api/messages/${activeUserId}`),
     enabled: Boolean(activeUserId),
   });
-  const scrollRef = useRef<HTMLDivElement>(null);
   const send = useMutation({
     mutationFn: (content: string) => apiSend<{ message: Message; weekly_count: number }>(`/api/messages/${activeUserId}`, "POST", { content }),
     onSuccess: () => {
+      setDraft("");
       toast("Message sent", "success");
       trackMetric("message_sent");
       void queryClient.invalidateQueries({ queryKey: ["messages", activeUserId] });
       void queryClient.invalidateQueries({ queryKey: ["weekly-count"] });
     },
-    onError: () => {
-      toast("Message could not be sent.", "error");
-    },
+    onError: (error: Error) => toast(
+      error.message === "connection_required"
+        ? "Messages are available after the connection is accepted."
+        : "Message could not be sent.",
+      "error",
+    ),
   });
 
-  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    if (!activeUserId && conversations.data?.[0]) setActiveUserId(conversations.data[0].id);
+  }, [activeUserId, conversations.data]);
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [thread.data]);
 
-  useEffect(() => {
-    if (!activeUserId && users.data?.[0]) setActiveUserId(users.data[0].id);
-  }, [activeUserId, users.data]);
-
-  const active = useMemo(() => users.data?.find((user) => user.id === activeUserId), [activeUserId, users.data]);
-
-  // Get the last message for each user to show a preview and timestamp
-  const lastMessages = useMemo(() => {
-    const map = new Map<string, Message>();
-    (thread.data ?? []).forEach((msg) => {
-      const otherId = msg.sender_id === me.data?.id ? msg.receiver_id : msg.sender_id;
-      if (otherId) map.set(otherId, msg);
-    });
-    return map;
-  }, [thread.data, me.data?.id]);
-
+  const active = useMemo(
+    () => conversations.data?.find((user) => user.id === activeUserId),
+    [activeUserId, conversations.data],
+  );
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const content = String(new FormData(event.currentTarget).get("content") ?? "");
-    if (content.trim()) send.mutate(content);
-    event.currentTarget.reset();
+    if (draft.trim()) send.mutate(draft.trim());
   }
 
-  if (users.isLoading) return <div className="skeleton" />;
+  if (conversations.isLoading) return <div className="skeleton" />;
 
   return (
     <PageTransition>
       <div className="screen-title mb-lg">
         <div>
           <h1>Messages</h1>
-          <p className="muted">Private conversations</p>
+          <p className="muted">Private conversations with your accepted connections.</p>
         </div>
         <span className="pill">{weekly.data?.count ?? 0} of 10 used</span>
       </div>
-      {send.error ? (
-        <Card padding="sm" className="mb-md">
-          <strong className="text-14">Message not sent.</strong>
-          <p className="muted text-13" style={{ margin: "4px 0 0" }}>Weekly limits or network issues may be blocking this send.</p>
-        </Card>
-      ) : null}
       <div className="messages-layout" style={{ gap: 14 }}>
-        {/* Conversation list */}
-        <Card padding="none" className="flex-col" style={{ overflow: "hidden" }}>
-          {(users.data ?? []).length === 0 ? (
-            <EmptyState
-              icon={<MessageCircle size={24} />}
-              title="No conversations"
-              description="Start connecting with other professionals to begin messaging."
-              variant="compact"
-            />
-          ) : (users.data ?? []).map((user) => {
-            const isActive = user.id === activeUserId;
-            const hasUnread = false; // Simplified - would come from actual data
-            const lastMsg = lastMessages.get(user.id);
-            return (
-              <button
-                key={user.id}
-                onClick={() => setActiveUserId(user.id)}
-                className={`conversation-btn ${isActive ? "conversation-btn--active" : ""}`}
-              >
-                <div className="avatar-wrap">
-                  <Avatar name={user.full_name} size={40} />
-                  {hasUnread && (
-                    <span style={{
-                      position: "absolute",
-                      top: 0,
-                      right: 0,
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      background: "var(--color-primary)",
-                      border: "2px solid var(--color-bg-secondary)",
-                    }} />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <div className="flex-between">
-                    <strong className="truncate text-15">
-                      {user.full_name}
-                      {hasUnread && (
-                        <span style={{
-                          display: "inline-block",
-                          width: 6,
-                          height: 6,
-                          borderRadius: "50%",
-                          background: "var(--color-primary)",
-                          marginLeft: 6,
-                          verticalAlign: "middle",
-                        }} />
-                      )}
-                    </strong>
-                    {lastMsg && (
-                      <span style={{ fontSize: 11, color: "var(--color-text-muted)", flexShrink: 0, marginLeft: 4 }}>
-                        {formatMessageTime(lastMsg.created_at)}
-                      </span>
-                    )}
-                  </div>
-                  <p style={{
-                    margin: "2px 0 0",
-                    fontSize: 13,
-                    color: "var(--color-text-muted)",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}>
-                    {lastMsg ? lastMsg.content.slice(0, 60) : user.industry}
-                  </p>
-                </div>
-              </button>
-            );
-          })}
+        <Card padding="none" className="flex-col message-inbox" style={{ overflow: "hidden" }}>
+          <div className="message-inbox-header"><strong>Connections</strong><span>{conversations.data?.length ?? 0}</span></div>
+          {(conversations.data ?? []).length === 0 ? (
+            <EmptyState icon={<LockKeyhole size={24} />} title="No connected members yet" description="Send a connection request in Discover. Messaging becomes available once it is accepted." variant="compact" />
+          ) : conversations.data!.map((user) => (
+            <button key={user.id} onClick={() => setActiveUserId(user.id)} className={`conversation-btn ${user.id === activeUserId ? "conversation-btn--active" : ""}`}>
+              <Avatar name={user.full_name} size={40} />
+              <div className="flex-1">
+                <strong className="truncate text-15">{user.full_name}</strong>
+                <p className="conversation-subtitle">Connected · {user.industry || "Member"}</p>
+              </div>
+            </button>
+          ))}
         </Card>
 
-        {/* Active conversation thread */}
-        <Card padding="md" className="flex-col" style={{ minHeight: 560 }}>
-          {/* Header */}
+        <Card padding="md" className="flex-col message-thread-panel" style={{ minHeight: 560 }}>
           <div className="thread-header">
             <Avatar name={active?.full_name ?? "User"} size={36} />
-            <div>
-              <strong style={{ fontSize: 15 }}>{active?.full_name ?? "Select a conversation"}</strong>
+            <div className="flex-1">
+              <strong style={{ fontSize: 15 }}>{active?.full_name ?? "Choose a connection"}</strong>
               <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-                {active?.industry} · {active?.city}
+                {active ? `Connected · ${active.industry || "Member"}${active.city ? ` · ${active.city}` : ""}` : "Private conversations are connection-only"}
               </p>
             </div>
+            {active ? <span className="pill message-connected-pill">Connected</span> : null}
           </div>
 
-          {/* Messages */}
-          <div
-            ref={scrollRef}
-            className="thread-messages"
-          >
-            {(thread.data ?? []).length === 0 ? (
-              <EmptyState
-                icon={<MessageCircle size={24} />}
-                title="No messages yet"
-                description="Send a message to start the conversation."
-                variant="compact"
+          <div ref={scrollRef} className="thread-messages">
+            {!activeUserId ? (
+              <EmptyState icon={<MessageCircle size={24} />} title="Choose a connection" description="Your private conversation will appear here." variant="compact" />
+            ) : thread.isLoading ? <div className="skeleton" /> : (thread.data ?? []).length === 0 ? (
+              <EmptyState icon={<MessageCircle size={24} />} title="Start the conversation" description="Send a thoughtful first message to your connection." variant="compact" />
+            ) : (thread.data ?? []).map((message, index, list) => (
+              <MessageBubble
+                key={message.id}
+                content={message.content}
+                created_at={message.created_at}
+                isMine={message.sender_id === me.data?.id}
+                showDateHeader={index > 0 && new Date(message.created_at).toDateString() !== new Date(list[index - 1].created_at).toDateString()}
               />
-            ) : (
-              (thread.data ?? []).map((message, idx) => {
-                const mine = message.sender_id === me.data?.id;
-                const prevMessage = idx > 0 ? (thread.data ?? [])[idx - 1] : null;
-                const showDateHeader = prevMessage
-                  ? new Date(message.created_at).toDateString() !== new Date(prevMessage.created_at).toDateString()
-                  : false;
-                return (
-                  <div key={message.id} className="animate-fade-in-up">
-                    <MessageBubble
-                      content={message.content}
-                      created_at={message.created_at}
-                      isMine={mine}
-                      showDateHeader={showDateHeader}
-                    />
-                  </div>
-                );
-              })
-            )}
+            ))}
           </div>
 
-          {/* Input */}
-          <form
-            onSubmit={submit}
-            className="thread-input"
-          >
-            <Input
-              name="content"
-              placeholder="Write a message..."
-              style={{ flex: 1 }}
+          <form onSubmit={submit} className="thread-input message-composer">
+            <textarea
+              value={draft}
+              onChange={(event) => setDraft(event.currentTarget.value)}
+              maxLength={2000}
+              disabled={!activeUserId || send.isPending}
+              placeholder={activeUserId ? "Write a message…" : "Choose a connection to write a message"}
+              aria-label="Message"
+              className="message-composer-textarea"
+              rows={1}
             />
-            <Button
-              type="submit"
-              disabled={send.isPending || !activeUserId}
-              icon={<Send size={20} />}
-              loading={send.isPending}
-              aria-label="Send message"
-              style={{ width: 48, height: 48, borderRadius: "50%", padding: 0, minHeight: 48 }}
-            >
-              <></>
-            </Button>
+            <Button type="submit" disabled={send.isPending || !activeUserId || !draft.trim()} icon={<Send size={20} />} loading={send.isPending} aria-label="Send message" style={{ width: 48, height: 48, borderRadius: "50%", padding: 0, minHeight: 48 }}><></></Button>
           </form>
+          {activeUserId ? <div className="message-composer-meta">Private to accepted connections · {draft.length}/2000</div> : null}
         </Card>
       </div>
     </PageTransition>

@@ -95,6 +95,15 @@ export function Notifications() {
       toast("Could not accept connection.", "error");
     },
   });
+  const declineConnection = useMutation({
+    mutationFn: (input: { connectionId: string; notificationId: string }) => apiSend(`/api/connections/${input.connectionId}`, "PATCH", { status: "declined" }),
+    onSuccess: (_, input) => {
+      toast("Connection request declined", "success");
+      void markOne.mutate(input.notificationId);
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+    onError: () => toast("Could not decline connection request.", "error"),
+  });
 
   const grouped = useMemo(() => groupNotifications(notifications.data ?? []), [notifications.data]);
 
@@ -172,6 +181,16 @@ export function Notifications() {
                           onClick={() => acceptConnection.mutate({ connectionId: notification.reference_id!, notificationId: notification.id })}
                         >
                           Accept
+                        </Button>
+                      ) : null}
+                      {notification.type === "connection_request" && notification.reference_id ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={declineConnection.isPending}
+                          onClick={() => declineConnection.mutate({ connectionId: notification.reference_id!, notificationId: notification.id })}
+                        >
+                          Decline
                         </Button>
                       ) : null}
                       {!notification.is_read && (
