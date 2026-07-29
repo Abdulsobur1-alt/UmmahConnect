@@ -788,8 +788,10 @@ html[lang] { word-break:break-word; }
   .screen-title p { font-size:var(--text-small) !important; }
   .notifications-header { gap:14px; margin-bottom:22px; }
   .notifications-header .btn { width:auto; min-height:44px; }
-  .notification-card { align-items:flex-start; padding:14px !important; gap:10px; }
-  .notification-card > .row:last-child { width:100%; padding-left:46px; justify-content:flex-start; flex-wrap:wrap; }
+  .notification-card { display:grid !important; grid-template-columns:36px minmax(0, 1fr); align-items:start; padding:14px !important; gap:10px; }
+  .notification-card .notif-icon { grid-column:1; grid-row:1; }
+  .notification-card .flex-1 { grid-column:2; grid-row:1; min-width:0; }
+  .notification-card > .row:last-child { grid-column:2; grid-row:2; width:auto; padding-left:0; justify-content:flex-start; flex-wrap:wrap; }
   .notification-card .btn { min-height:38px; }
   h1.font-display { font-size:var(--space-3xl) !important; }
   .card p, .card .muted, .card span:not(.pill):not(.btn) { font-size:var(--text-body); }
