@@ -23,6 +23,14 @@ type PostCardProps = {
   index?: number;
 };
 
+type CommentData = {
+  id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  user: { id: string; full_name: string; avatar_url: string | null } | null;
+};
+
 /**
  * PostCard — a reusable post card component for feed and profile timelines.
  */
@@ -39,7 +47,7 @@ export function PostCard({
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [commentDraft, setCommentDraft] = useState("");
   const queryClient = useQueryClient();
-  const comments = useQuery({ queryKey: ["post-comments", post.id], queryFn: () => apiGet<any[]>(`/api/posts/${post.id}/comments`), enabled: commentsOpen });
+  const comments = useQuery({ queryKey: ["post-comments", post.id], queryFn: () => apiGet<CommentData[]>(`/api/posts/${post.id}/comments`), enabled: commentsOpen });
   const addComment = useMutation({ mutationFn: () => apiSend(`/api/posts/${post.id}/comments`, "POST", { content: commentDraft }), onSuccess: () => { setCommentDraft(""); void comments.refetch(); void queryClient.invalidateQueries({ queryKey: ["posts"] }); } });
   const contentLong = post.content.length > 200;
   const displayContent = isExpanded || !contentLong ? post.content : post.content.slice(0, 200) + "...";
@@ -115,7 +123,50 @@ export function PostCard({
           <Share2 size={16} /> Share
         </Button>
       </div>
-      {commentsOpen ? <div className="inline-comments"><div className="inline-comments-list">{comments.isLoading ? <span className="muted text-13">Loading comments…</span> : (comments.data ?? []).length === 0 ? <span className="muted text-13">Be the first to comment.</span> : comments.data!.map((comment) => <div key={comment.id} className="inline-comment"><strong>Member</strong><span>{comment.content}</span></div>)}</div><form className="inline-comment-form" onSubmit={(event) => { event.preventDefault(); if (commentDraft.trim()) addComment.mutate(); }}><input value={commentDraft} onChange={(event) => setCommentDraft(event.currentTarget.value)} maxLength={1000} placeholder="Add a thoughtful comment…"/><Button size="sm" disabled={!commentDraft.trim() || addComment.isPending}>Reply</Button></form></div> : null}
+      {commentsOpen ? (
+        <div className="inline-comments">
+          <div className="inline-comments-list">
+            {comments.isLoading ? (
+              <span className="muted text-13">Loading comments…</span>
+            ) : (comments.data ?? []).length === 0 ? (
+              <span className="muted text-13">Be the first to comment.</span>
+            ) : (
+              comments.data!.map((comment) => (
+                <div key={comment.id} className="inline-comment">
+                  <div className="inline-comment-avatar">
+                    <Avatar name={comment.user?.full_name ?? "Member"} size={28} />
+                  </div>
+                  <div className="inline-comment-body">
+                    <strong className="text-13">
+                      {comment.user?.full_name ?? "Member"}
+                    </strong>
+                    <p className="inline-comment-text">{comment.content}</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <form
+            className="inline-comment-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (commentDraft.trim()) addComment.mutate();
+            }}
+          >
+            <textarea
+              value={commentDraft}
+              onChange={(event) => setCommentDraft(event.currentTarget.value)}
+              maxLength={1000}
+              placeholder="Add a thoughtful comment…"
+              className="inline-comment-textarea"
+              rows={2}
+            />
+            <Button size="sm" disabled={!commentDraft.trim() || addComment.isPending}>
+              Reply
+            </Button>
+          </form>
+        </div>
+      ) : null}
     </Card>
   );
 }

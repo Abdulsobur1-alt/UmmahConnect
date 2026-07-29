@@ -158,6 +158,7 @@ button { cursor: pointer; }
 .card { background: var(--color-bg-secondary); border:1px solid var(--color-line-light); border-radius:var(--radius-lg); padding:var(--space-xl); }
 .card--strong { background: var(--color-bg-secondary); }
 .public-card { padding:var(--space-3xl); }
+@media (max-width:768px) { .public-card { padding:var(--space-xl); } .public-brand { font-size:22px; } }
 .plan-price { font-size: var(--text-h2); font-weight: 700; margin: var(--space-md) 0; }
 
 /* Auth utilities */
@@ -262,7 +263,7 @@ button { cursor: pointer; }
 .nav-links { display:flex; align-items:center; gap:6px; flex-wrap:nowrap; min-width:0; white-space:nowrap }
 .nav-link { border-radius:var(--radius-sm); padding:9px 10px; color:var(--color-text-muted); font-size:var(--text-body); font-weight:600 }
 .nav-link-active { background:var(--color-primary); color:#fff }
-.desktop-nav-more { display:none; position:relative; }
+.desktop-nav-more { position:relative; }
 .nav-link-more { border:0; background:transparent; display:inline-flex; align-items:center; gap:6px; cursor:pointer; }
 .desktop-more-menu { position:absolute; top:calc(100% + 8px); right:0; min-width:190px; padding:6px; border:1px solid rgba(255,255,255,.1); border-radius:12px; background:var(--color-bg-secondary); box-shadow:0 18px 42px rgba(0,0,0,.35); z-index:60; }
 
@@ -869,20 +870,7 @@ html[lang] { word-break:break-word; }
   .app-nav-inner { min-height:56px; flex-direction:row; }
 }
 
-/* Avoid a second navigation line: optional links collapse into More before
-   they can collide with the brand or account controls. */
-@media (max-width:1750px) and (min-width:769px) {
-  .nav-link--announcements { display:none; }
-  .desktop-nav-more { display:block; }
-  .brand { font-size:23px; }
-  .nav-link { padding:9px 10px; }
-}
-@media (max-width:1420px) and (min-width:769px) {
-  .nav-link--mentorship, .nav-link--messages { display:none; }
-  .app-nav-inner { gap:10px; }
-  .desktop-header-right { gap:8px; }
-  .plan-badge { padding:8px 10px; }
-}
+
 
 /* Product foundations: onboarding and touch-first mobile refinements */
 .onboarding-shell { min-height:calc(100vh - 150px); display:grid; place-items:center; padding:24px 0 96px; }
@@ -944,11 +932,15 @@ html[lang] { word-break:break-word; }
 .post-actions { margin-top:16px; padding-top:12px; }
 .post-author-link { color:inherit; text-decoration:none; }
 .inline-comments { display:grid; gap:10px; margin-top:12px; padding-top:12px; border-top:1px solid var(--color-line); }
-.inline-comments-list { display:grid; gap:8px; max-height:220px; overflow:auto; }
-.inline-comment { display:grid; gap:2px; padding:9px 11px; border-radius:10px; background:rgba(255,255,255,.035); font-size:13px; }
-.inline-comment span { color:var(--color-text-secondary); line-height:1.45; }
-.inline-comment-form { display:flex; gap:8px; }
-.inline-comment-form input { flex:1; min-width:0; border:1px solid var(--color-line); border-radius:999px; background:rgba(255,255,255,.025); color:var(--color-text-primary); padding:0 13px; }
+.inline-comments-list { display:grid; gap:8px; max-height:280px; overflow:auto; }
+.inline-comment { display:flex; gap:8px; padding:9px 11px; border-radius:10px; background:rgba(255,255,255,.035); font-size:13px; }
+.inline-comment-avatar { flex:0 0 auto; }
+.inline-comment-body { flex:1; min-width:0; }
+.inline-comment-body strong { display:block; color:var(--color-text-primary); margin-bottom:2px; }
+.inline-comment-text { margin:0; color:var(--color-text-secondary); line-height:1.45; font-size:13px; }
+.inline-comment-form { display:flex; gap:8px; align-items:flex-start; }
+.inline-comment-textarea { flex:1; min-width:0; min-height:36px; max-height:80px; border:1px solid var(--color-line); border-radius:12px; background:rgba(255,255,255,.025); color:var(--color-text-primary); padding:8px 12px; font-size:13px; resize:none; outline:0; }
+.inline-comment-textarea:focus { border-color:rgba(94,205,181,.5); }
 .post-action-btn { border-radius:var(--radius-full) !important; padding:6px 9px !important; }
 .input, .textarea { background:rgba(255,255,255,0.025); border-color:rgba(255,255,255,0.10); }
 .input:focus, .textarea:focus { border-color:rgba(94,205,181,0.7); box-shadow:0 0 0 4px rgba(94,205,181,0.10); outline:0; }

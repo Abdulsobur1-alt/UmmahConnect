@@ -1,9 +1,10 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db/client";
-import { comments, posts } from "@/lib/db/schema";
+import { comments, posts, users } from "@/lib/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { requireAuth } from "@/lib/api/auth";
 import { fail, ok, serverError } from "@/lib/api/helpers";
+import { userDto } from "@/lib/api/mappers";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +19,21 @@ export async function GET(
     const data = await db
       .select()
       .from(comments)
+      .leftJoin(users, eq(comments.userId, users.id))
       .where(eq(comments.postId, params.id))
       .orderBy(asc(comments.createdAt));
 
-    return ok(data ?? []);
+    const mapped = (data ?? []).map((row: any) => ({
+      id: row.comments.id,
+      post_id: row.comments.postId,
+      user_id: row.comments.userId,
+      content: row.comments.content,
+      is_deleted: row.comments.isDeleted,
+      created_at: row.comments.createdAt,
+      user: row.users ? userDto(row.users) : null,
+    }));
+
+    return ok(mapped);
   } catch {
     return serverError();
   }

@@ -35,7 +35,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMoreNav, setShowMoreNav] = useState(false);
   const [dropdownAnimating, setDropdownAnimating] = useState(false);
+  const [maxVisibleNav, setMaxVisibleNav] = useState(navItems.length);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navLinksRef = useRef<HTMLDivElement>(null);
   const { data: currentUser } = useQuery({ queryKey: ["me"], queryFn: () => apiGet<User>("/api/users/me") });
   const { data: notifications = [] } = useQuery({
     queryKey: ["notifications"],
@@ -53,6 +55,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Fluid More menu — dynamically count how many nav items fit without overflowing
+  useEffect(() => {
+    const navLinks = navLinksRef.current;
+    if (!navLinks) return;
+
+    function checkFit(el: HTMLDivElement) {
+      const itemWidth = 94;
+      const moreWidth = 82;
+      const gaps = 6;
+      const available = el.offsetWidth;
+      const maxItems = Math.floor((available - moreWidth - gaps) / (itemWidth + gaps));
+      setMaxVisibleNav(Math.max(2, Math.min(navItems.length, maxItems)));
+    }
+
+    checkFit(navLinks);
+    const observer = new ResizeObserver(() => {
+      if (navLinksRef.current) checkFit(navLinksRef.current);
+    });
+    observer.observe(navLinks);
+    return () => observer.disconnect();
+  }, []);
+
+  const visibleItems = navItems.slice(0, maxVisibleNav);
+  const overflowItems = navItems.slice(maxVisibleNav);
 
   // Animate dropdown
   const toggleDropdown = useCallback(() => {
@@ -78,8 +105,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Link href="/feed" className="brand transition-fast">
             Ummah <span>Connect</span>
           </Link>
-          <div className="nav-links" aria-label="Main navigation">
-            {navItems.map((item) => {
+          <div className="nav-links" ref={navLinksRef} aria-label="Main navigation">
+            {visibleItems.map((item) => {
               const Icon = item.icon;
               const active = pathname === item.href;
               return (
@@ -95,14 +122,34 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </Link>
               );
             })}
-            <div className="desktop-nav-more">
-              <button className={`nav-link nav-link-more ${["/mentorship", "/messages", "/announcements"].includes(pathname) ? "nav-link-active" : ""}`} onClick={() => setShowMoreNav((value) => !value)}>
-                <MoreHorizontal size={17} /> More
-              </button>
-              {showMoreNav ? <div className="desktop-more-menu">
-                {navItems.slice(3).map((item) => { const Icon = item.icon; return <Link key={item.href} href={item.href} className="dropdown-item" onClick={() => setShowMoreNav(false)}><Icon size={16}/>{item.label}</Link>; })}
-              </div> : null}
-            </div>
+            {overflowItems.length > 0 ? (
+              <div className="desktop-nav-more" style={{ display: "block" }}>
+                <button
+                  className={`nav-link nav-link-more ${overflowItems.some((item) => pathname === item.href) ? "nav-link-active" : ""}`}
+                  onClick={() => setShowMoreNav((value) => !value)}
+                >
+                  <MoreHorizontal size={17} /> More
+                </button>
+                {showMoreNav ? (
+                  <div className="desktop-more-menu">
+                    {overflowItems.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className="dropdown-item"
+                          onClick={() => setShowMoreNav(false)}
+                        >
+                          <Icon size={16} />
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
           {/* Avatar dropdown — desktop */}
           <div
