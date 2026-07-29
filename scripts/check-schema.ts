@@ -15,6 +15,7 @@ const expected: Record<string, string[]> = {
   user_blocks: ["blocker_id", "blocked_id"],
   reports: ["id", "reporter_id", "reason", "status"],
   product_events: ["id", "event", "properties", "created_at"],
+  announcements: ["id", "author_id", "kind", "title", "body", "status", "created_at"],
 };
 
 async function main() {

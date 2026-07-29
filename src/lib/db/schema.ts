@@ -377,6 +377,20 @@ export const productEvents = pgTable("product_events", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const announcements = pgTable("announcements", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  authorId: uuid("author_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  kind: text("kind").notNull(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  location: text("location"),
+  startsAt: timestamp("starts_at", { withTimezone: true }),
+  ctaUrl: text("cta_url"),
+  status: text("status").notNull().default("published"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 /* ─── Relations ─── */
 export const usersRelations = relations(users, ({ many }) => ({
   posts: many(posts),

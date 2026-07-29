@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Briefcase, Compass, Home, MessageCircle, Settings,
+  Briefcase, Compass, Home, MessageCircle, Settings, Megaphone,
   Sparkles, UserRound, ChevronDown, LogOut, Bell,
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
@@ -19,6 +19,7 @@ const navItems = [
   { href: "/mentorship", label: "Mentorship", icon: Sparkles },
   { href: "/jobs", label: "Jobs", icon: Briefcase },
   { href: "/messages", label: "Messages", icon: MessageCircle },
+  { href: "/announcements", label: "Announcements", icon: Megaphone },
 ];
 
 const bottomTabs = [
