@@ -105,8 +105,27 @@ export function HomeFeed() {
   const prayerMinutesUntil = useCountdown(prayer.data);
   const composeRef = useRef<HTMLTextAreaElement>(null);
   const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
-  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [animatingLike, setAnimatingLike] = useState<string | null>(null);
+
+  // Persist liked posts across refreshes using localStorage
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem('liked_posts');
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+  const persistLiked = useRef<(posts: Set<string>) => void>(() => {});
+  persistLiked.current = (posts: Set<string>) => {
+    try {
+      localStorage.setItem('liked_posts', JSON.stringify([...posts]));
+    } catch { /* quota exceeded — silently ignore */ }
+  };
+  // Sync to localStorage whenever likedPosts changes
+  useEffect(() => {
+    persistLiked.current(likedPosts);
+  }, [likedPosts]);
   const createPost = useMutation({
     mutationFn: (content: string) => apiSend<Post>("/api/posts", "POST", { content }),
     onSuccess: () => {
@@ -263,6 +282,7 @@ export function HomeFeed() {
                   onToggleExpand={toggleExpand}
                   onLike={(postId) => toggleLike.mutate(postId)}
                   onRepost={(postId) => repost.mutate(postId)}
+                  currentUserId={currentUser?.id}
                   index={index}
                 />
               );
@@ -295,14 +315,40 @@ export function HomeFeed() {
             </article>
           ) : null}
 
-          {/* Community quick-links */}
+          {/* Trending communities — top 3 by member count */}
           {(communities.data ?? []).length > 0 ? (
             <article className="card transition-normal p-sm">
-              <strong className="text-14" style={{ marginBottom: 10, display: "block" }}>Community quick-links</strong>
-              <div className="community-scroll" style={{ display: "flex", gap: 6, overflowX: "auto", marginTop: 6, paddingBottom: 4 }}>
-                {(communities.data ?? []).slice(0, 6).map((community) => (
-                  <Tag key={community.id} className="transition-fast hover-lift cursor-pointer">{community.name}</Tag>
-                ))}
+              <strong className="text-14" style={{ marginBottom: 10, display: "block" }}>Trending communities</strong>
+              <div className="grid" style={{ gap: 8 }}>
+                {[...(communities.data ?? [])]
+                  .sort((a, b) => b.member_count - a.member_count)
+                  .slice(0, 3)
+                  .map((community) => (
+                    <div key={community.id} className="row" style={{ gap: 10 }}>
+                      <div
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--color-primary-light)',
+                          display: 'grid',
+                          placeItems: 'center',
+                          fontSize: 14,
+                          fontWeight: 700,
+                          color: 'var(--color-primary)',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {community.name.charAt(0)}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="text-13" style={{ fontWeight: 600 }}>{community.name}</div>
+                        <div className="muted" style={{ fontSize: 11 }}>
+                          {community.member_count.toLocaleString()} members
+                        </div>
+                      </div>
+                    </div>
+                  ))}
               </div>
             </article>
           ) : null}
