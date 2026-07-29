@@ -26,13 +26,9 @@ export async function notifyUser(input: {
     .where(eq(users.id, input.userId))
     .limit(1);
   const settings = (recipient?.notificationSettings ?? {}) as Record<string, boolean>;
-  const category = input.type.startsWith("connection") ? "connections"
-    : input.type === "message_received" ? "messages"
-    : input.type.startsWith("mentorship") ? "mentorship"
-    : input.type === "job_match" ? "jobs"
-    : input.type === "event_sponsored" ? "events"
-    : undefined;
-  if (category && settings[category] === false) return;
+  // Check per-type preference — if the user has explicitly disabled this exact type, skip it.
+  // Missing keys default to enabled for a smooth migration from the old category-based system.
+  if (settings[input.type] === false) return;
   await db.insert(notifications).values({
     userId: input.userId,
     type: input.type,

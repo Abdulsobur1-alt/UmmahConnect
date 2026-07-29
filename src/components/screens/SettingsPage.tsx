@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { Bell, Crown, Eye, KeyRound, Lock, Shield } from "lucide-react";
+import { Bell, Briefcase, Crown, CreditCard, Eye, KeyRound, Lock, MessageCircle, Shield, Sparkles, ThumbsUp, Users } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -105,9 +105,24 @@ export function SettingsPage() {
         {activeTab === "Notifications" ? (
           <div className="grid">
             <div className="row"><Bell color="var(--color-primary)" /><strong>Notification preferences</strong></div>
-            {[["connections", "Connection requests"], ["messages", "New messages"], ["mentorship", "Mentorship updates"], ["jobs", "Matching jobs"], ["events", "Sponsored events"]].map(([key, item]) => (
-              <div key={item} className="row space-between" style={{ cursor: "pointer" }}>
-                <span>{item}</span>
+            <p className="muted" style={{ fontSize: 13, margin: "0 0 4px" }}>Choose which updates you receive. Disabled types are silently skipped server-side.</p>
+            {[
+              { key: "connection_request", label: "Connection requests", icon: Users },
+              { key: "connection_accepted", label: "Connection accepted", icon: Users },
+              { key: "message_received", label: "New messages", icon: MessageCircle },
+              { key: "post_liked", label: "Post likes", icon: ThumbsUp },
+              { key: "comment_received", label: "Comments on posts", icon: MessageCircle },
+              { key: "mentorship_request", label: "Mentorship requests", icon: Sparkles },
+              { key: "mentorship_accepted", label: "Mentorship accepted", icon: Sparkles },
+              { key: "job_match", label: "Matching jobs", icon: Briefcase },
+              { key: "event_sponsored", label: "Sponsored events", icon: Bell },
+              { key: "payment_failed", label: "Payment updates", icon: CreditCard },
+            ].map(({ key, label, icon: Icon }) => (
+              <div key={key} className="row space-between" style={{ cursor: "pointer", padding: "4px 0" }}>
+                <span className="row" style={{ gap: 8 }}>
+                  <Icon size={16} className="muted" />
+                  {label}
+                </span>
                 <label className="toggle-switch">
                   <input type="checkbox" checked={currentUser.notification_settings[key] !== false} onChange={(event) => saveNotification(key, event.currentTarget.checked)} />
                   <span className="toggle-slider" />
