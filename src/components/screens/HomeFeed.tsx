@@ -22,32 +22,9 @@ type Prayer = { name: string; time: string; minutes_until: number };
 function LoadingFeed() {
   return (
     <div className="grid stagger-children">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="skeleton-card animate-fade-in" style={{ animationDelay: `${i * 0.08}s` }}>
-          {/* Header row — avatar + name + time */}
-          <div className="skeleton-header">
-            <div className="skeleton-avatar skeleton-shimmer" />
-            <div className="skeleton-lines" style={{ maxWidth: 240 }}>
-              <div className="skeleton-line skeleton-shimmer skeleton-line--md" />
-              <div className="skeleton-line skeleton-shimmer skeleton-line--sm" style={{ height: 11 }} />
-            </div>
-            <div className="skeleton-line skeleton-shimmer" style={{ width: 54, height: 11, marginLeft: 'auto' }} />
-          </div>
-          {/* Content lines */}
-          <div className="skeleton-lines">
-            <div className="skeleton-line skeleton-shimmer skeleton-line--lg" />
-            <div className="skeleton-line skeleton-shimmer" style={{ width: '78%' }} />
-            <div className="skeleton-line skeleton-shimmer skeleton-line--md" />
-          </div>
-          {/* Action bar */}
-          <div className="skeleton-actions">
-            <div className="skeleton-action skeleton-shimmer" />
-            <div className="skeleton-action skeleton-shimmer" />
-            <div className="skeleton-action skeleton-shimmer" />
-            <div className="skeleton-action skeleton-shimmer" style={{ marginLeft: 'auto', width: 64 }} />
-          </div>
-        </div>
-      ))}
+      <div className="skeleton" style={{ minHeight: 120 }} />
+      <div className="skeleton" style={{ minHeight: 160 }} />
+      <div className="skeleton" style={{ minHeight: 100 }} />
     </div>
   );
 }
