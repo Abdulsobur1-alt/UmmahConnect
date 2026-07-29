@@ -24,6 +24,7 @@ export function Profile() {
   const [skillInput, setSkillInput] = useState("");
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [showConnections, setShowConnections] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -32,7 +33,7 @@ export function Profile() {
   const posts = useQuery({ queryKey: ["posts"], queryFn: () => apiGet<Post[]>("/api/posts") });
   const connections = useQuery({
     queryKey: ["connections-count"],
-    queryFn: () => apiGet<{ id: string }[]>(`/api/users/${me.data?.id}/connections`),
+    queryFn: () => apiGet<any[]>(`/api/users/${me.data?.id}/connections`),
     enabled: Boolean(me.data?.id),
   });
   const update = useMutation({
@@ -307,7 +308,7 @@ export function Profile() {
         >
           <div className="flex-between mb-sm">
             <h3 className="text-bold" style={{ margin: 0, fontSize: 18 }}>Connections</h3>
-            <Button variant="ghost" size="sm" className="see-all-btn">See all</Button>
+            <Button variant="ghost" size="sm" className="see-all-btn" onClick={() => setShowConnections(true)}>See all</Button>
           </div>
           <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: 0 }}>
             Connect with professionals to grow your network
@@ -427,6 +428,27 @@ export function Profile() {
               {update.isPending ? "Saving..." : "Save changes"}
             </Button>
           </form>
+        </Modal>
+      ) : null}
+
+      {/* Connections list modal */}
+      {showConnections ? (
+        <Modal title={`Connections (${connections.data?.length ?? 0})`} onClose={() => setShowConnections(false)}>
+          <div className="grid" style={{ gap: 6 }}>
+            {(connections.data ?? []).length === 0 ? (
+              <p className="muted" style={{ textAlign: 'center' }}>No connections yet.</p>
+            ) : (connections.data ?? []).map((conn: any) => (
+              <div key={conn.id} className="row" style={{ padding: '8px 0', borderBottom: '1px solid var(--color-line-light)' }}>
+                <Avatar name={conn.connected_user_name} size={36} src={conn.connected_user_avatar} />
+                <div className="flex-1">
+                  <strong className="text-14">{conn.connected_user_name}</strong>
+                  {conn.connected_user_industry && (
+                    <p className="muted" style={{ margin: 0, fontSize: 12 }}>{conn.connected_user_industry}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </Modal>
       ) : null}
     </div>
