@@ -13,7 +13,7 @@ import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { apiGet, apiSend } from "@/lib/api/client";
 import { formatPostTime } from "@/lib/utils/time";
-import { ErrorState, InfoCard, ProgressBar, Tag } from "@/components/ui/Common";
+import { ErrorState, InfoCard, Tag } from "@/components/ui/Common";
 import type { Post, User } from "@/types";
 
 export function Profile() {
@@ -29,7 +29,6 @@ export function Profile() {
   const queryClient = useQueryClient();
   const me = useQuery({ queryKey: ["me"], queryFn: () => apiGet<User>("/api/users/me") });
   const posts = useQuery({ queryKey: ["posts"], queryFn: () => apiGet<Post[]>("/api/posts") });
-  const weekly = useQuery({ queryKey: ["weekly-count"], queryFn: () => apiGet<{ count: number; remaining: number }>("/api/messages/weekly-count") });
   const connections = useQuery({
     queryKey: ["connections-count"],
     queryFn: () => apiGet<{ id: string }[]>(`/api/users/${me.data?.id}/connections`),
@@ -165,6 +164,18 @@ export function Profile() {
             style={{ display: "none" }}
             onChange={handleAvatarChange}
           />
+          {displayAvatar ? (
+            <button
+              type="button"
+              className="avatar-reset-btn"
+              onClick={() => {
+                setAvatarPreview(null);
+                update.mutate({ avatar_url: null });
+              }}
+            >
+              Use initials
+            </button>
+          ) : null}
         </div>
         <Button
           variant="ghost"
@@ -295,16 +306,8 @@ export function Profile() {
         <div className="profile-utility-grid">
           <InfoCard
             icon={<MessageCircle size={16} color="var(--color-primary)" />}
-            title="Weekly messaging counter"
-            description="Free users can send and receive messages from anyone, including Pro users. Sending is limited to 10 messages per week."
-            extra={
-              <>
-                <ProgressBar value={weekly.data?.count ?? 0} height={8} />
-                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", margin: "6px 0 0" }}>
-                  {weekly.data?.count ?? 0} of 10 messages used this week
-                </p>
-              </>
-            }
+            title="Private messaging"
+            description="Messaging is available after a connection is accepted. Free members can message free connections without a limit; premium-member outreach has a weekly allowance."
           />
 
           <InfoCard

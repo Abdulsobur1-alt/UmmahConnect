@@ -436,6 +436,9 @@ button { cursor: pointer; }
 .notif-banner-close:hover { background:rgba(255,255,255,0.1); color:#fff; }
 .bell-icon { flex:0 0 auto; color:var(--color-accent); }
 .banner-text { flex:1; line-height:1.4; color:inherit; text-decoration:none; }
+.desktop-notification-button { width:40px; height:40px; display:grid; place-items:center; position:relative; border:1px solid var(--color-line); border-radius:50%; color:var(--color-text-secondary); background:rgba(255,255,255,.025); }
+.desktop-notification-dot { position:absolute; top:8px; right:8px; width:7px; height:7px; border:2px solid var(--color-bg-dark); border-radius:50%; background:var(--color-accent); }
+.avatar-reset-btn { position:absolute; left:50%; top:calc(100% + 7px); transform:translateX(-50%); border:0; background:transparent; color:var(--color-text-muted); font-size:11px; white-space:nowrap; cursor:pointer; }
 .notif-banner-actions { display:flex; align-items:center; gap:8px; flex:0 0 auto; }
 .notif-banner-action { min-height:30px; padding:0 12px; border:1px solid rgba(255,255,255,.35); border-radius:999px; background:rgba(255,255,255,.16); color:#fff; font-weight:700; cursor:pointer; }
 .notif-banner-action--secondary { background:transparent; color:rgba(255,255,255,.9); }

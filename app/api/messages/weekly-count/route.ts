@@ -30,6 +30,8 @@ export async function GET() {
       week_start: weekStart,
       count,
       remaining: Math.max(0, 10 - count),
+      limit: 10,
+      label: "Premium-member messages",
     });
   } catch {
     return serverError();

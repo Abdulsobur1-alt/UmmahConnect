@@ -19,7 +19,6 @@ export function Messages() {
   const queryClient = useQueryClient();
   const me = useQuery({ queryKey: ["me"], queryFn: () => apiGet<User>("/api/users/me") });
   const conversations = useQuery({ queryKey: ["message-conversations"], queryFn: () => apiGet<User[]>("/api/messages/conversations") });
-  const weekly = useQuery({ queryKey: ["weekly-count"], queryFn: () => apiGet<{ count: number; remaining: number }>("/api/messages/weekly-count") });
   const [activeUserId, setActiveUserId] = useState("");
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -35,7 +34,6 @@ export function Messages() {
       toast("Message sent", "success");
       trackMetric("message_sent");
       void queryClient.invalidateQueries({ queryKey: ["messages", activeUserId] });
-      void queryClient.invalidateQueries({ queryKey: ["weekly-count"] });
     },
     onError: (error: Error) => toast(
       error.message === "connection_required"
@@ -70,7 +68,7 @@ export function Messages() {
           <h1>Messages</h1>
           <p className="muted">Private conversations with your accepted connections.</p>
         </div>
-        <span className="pill">{weekly.data?.count ?? 0} of 10 used</span>
+        <span className="pill">Connection-only</span>
       </div>
       <div className="messages-layout" style={{ gap: 14 }}>
         <Card padding="none" className="flex-col message-inbox" style={{ overflow: "hidden" }}>

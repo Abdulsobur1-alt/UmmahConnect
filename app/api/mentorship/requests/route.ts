@@ -4,6 +4,7 @@ import { mentorshipRequests } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { requireAuth } from "@/lib/api/auth";
 import { fail, ok, serverError } from "@/lib/api/helpers";
+import { isPremiumPlan } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,7 @@ export async function GET() {
   try {
     const auth = await requireAuth();
     if ("error" in auth) return fail(auth.error, 401);
+    if (!isPremiumPlan(auth.plan)) return fail("premium_required", 403);
 
     const data = await db
       .select()
@@ -29,6 +31,7 @@ export async function POST(request: NextRequest) {
   try {
     const auth = await requireAuth();
     if ("error" in auth) return fail(auth.error, 401);
+    if (!isPremiumPlan(auth.plan)) return fail("premium_required", 403);
 
     const body = await request.json();
     if (!body.mentor_id || !body.message)

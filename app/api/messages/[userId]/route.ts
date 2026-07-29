@@ -8,6 +8,7 @@ import { messageDto } from "@/lib/api/mappers";
 import { notifyUser } from "@/lib/api/notifications";
 import { createClient } from "@/lib/supabase/server";
 import { fail, ok, serverError } from "@/lib/api/helpers";
+import { isFreePlan, isPremiumPlan } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -69,12 +70,13 @@ export async function POST(
     if (!(await hasAcceptedConnection(auth.userId, params.userId))) return fail("connection_required", 403);
 
     const recipient = await db
-      .select({ id: users.id })
+      .select({ id: users.id, plan: users.plan })
       .from(users)
       .where(eq(users.id, params.userId))
       .limit(1);
     if (!recipient[0]) return fail("recipient_not_found", 404);
 
+    const premiumOutreachIsLimited = isFreePlan(auth.plan) && isPremiumPlan(recipient[0].plan);
     const weekStart = mondayWeekStart();
 
     // Check weekly limit
@@ -90,8 +92,7 @@ export async function POST(
       .limit(1);
 
     const count = current[0]?.count ?? 0;
-    if (auth.plan === "free" && count >= 10)
-      return fail("weekly_limit_reached", 403);
+    if (premiumOutreachIsLimited && count >= 10) return fail("premium_message_limit_reached", 403);
 
     const inserted = await db
       .insert(messages)
@@ -101,7 +102,7 @@ export async function POST(
     if (!inserted[0]) return fail("send_failed", 400);
 
     // Upsert weekly count
-    if (current[0]) {
+    if (premiumOutreachIsLimited && current[0]) {
       await db
         .update(messageWeeklyCounts)
         .set({ count: count + 1 })
@@ -111,7 +112,7 @@ export async function POST(
             eq(messageWeeklyCounts.weekStart, weekStart),
           ),
         );
-    } else {
+    } else if (premiumOutreachIsLimited) {
       await db
         .insert(messageWeeklyCounts)
         .values({ userId: auth.userId, weekStart, count: 1 });
@@ -147,7 +148,7 @@ export async function POST(
     }
 
     return ok(
-      { message: messageDto(inserted[0] as any), weekly_count: count + 1 },
+      { message: messageDto(inserted[0] as any), weekly_count: premiumOutreachIsLimited ? count + 1 : count },
       201,
     );
   } catch (error) {

@@ -10,7 +10,7 @@ import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PostCard } from "@/components/ui/PostCard";
-import { ProgressBar, Tag } from "@/components/ui/Common";
+import { Tag } from "@/components/ui/Common";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/Toast";
 import { apiGet, apiSend } from "@/lib/api/client";
@@ -18,7 +18,6 @@ import { trackMetric } from "@/lib/metrics";
 import type { Community, EventListing, Post, User } from "@/types";
 
 type Prayer = { name: string; time: string; minutes_until: number };
-type Weekly = { count: number; remaining: number; week_start: string };
 
 function LoadingFeed() {
   return (
@@ -81,7 +80,6 @@ export function HomeFeed() {
   const events = useQuery({ queryKey: ["events"], queryFn: () => apiGet<EventListing[]>("/api/events") });
   const prayer = useQuery({ queryKey: ["prayer-times"], queryFn: () => apiGet<Prayer>("/api/prayer-times") });
   const prayerMinutesUntil = useCountdown(prayer.data);
-  const weekly = useQuery({ queryKey: ["weekly-count"], queryFn: () => apiGet<Weekly>("/api/messages/weekly-count") });
   const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [animatingLike, setAnimatingLike] = useState<string | null>(null);
@@ -121,7 +119,6 @@ export function HomeFeed() {
   const currentUser = me.data;
   const event = events.data?.[0];
   const greeting = currentUser ? `Assalamu Alaikum, ${currentUser.full_name.split(" ")[0]} 👋` : "Assalamu Alaikum 👋";
-  const weeklyCount = weekly.data?.count ?? 0;
 
   function toggleExpand(postId: string) {
     setExpandedPosts((prev) => {
@@ -276,13 +273,10 @@ export function HomeFeed() {
           <article className="card transition-normal p-sm">
             <div className="row">
               <MessageSquare size={15} color="var(--color-text-muted)" />
-              <strong className="text-13">Weekly messaging</strong>
-            </div>
-            <div className="mt-sm">
-              <ProgressBar value={weeklyCount} height={6} />
+              <strong className="text-13">Private messaging</strong>
             </div>
             <p className="muted text-12" style={{ margin: "4px 0 0" }}>
-              {weeklyCount} of 10 messages used this week
+              Messages open after a connection is accepted.
             </p>
           </article>
         </aside>

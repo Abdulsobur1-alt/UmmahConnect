@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   Briefcase, Compass, Home, MessageCircle, Settings,
-  Sparkles, UserRound, ChevronDown, LogOut, Bell, X,
+  Sparkles, UserRound, ChevronDown, LogOut, Bell,
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
-import { apiGet, apiSend } from "@/lib/api/client";
+import { apiGet } from "@/lib/api/client";
 import type { Notification, User } from "@/types";
 
 const navItems = [
@@ -31,9 +31,7 @@ const bottomTabs = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const queryClient = useQueryClient();
   const [showDropdown, setShowDropdown] = useState(false);
-  const [dismissedNotif, setDismissedNotif] = useState<string | null>(null);
   const [dropdownAnimating, setDropdownAnimating] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { data: currentUser } = useQuery({ queryKey: ["me"], queryFn: () => apiGet<User>("/api/users/me") });
@@ -43,21 +41,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     enabled: Boolean(currentUser),
   });
   const latestNotification = notifications.find((n) => !n.is_read);
-  const dismissNotification = useMutation({
-    mutationFn: (id: string) => apiSend(`/api/notifications/${id}/read`, "POST"),
-    onSettled: () => void queryClient.invalidateQueries({ queryKey: ["notifications"] }),
-  });
-  const respondToConnection = useMutation({
-    mutationFn: ({ connectionId, status, notificationId }: { connectionId: string; status: "accepted" | "declined"; notificationId: string }) =>
-      apiSend(`/api/connections/${connectionId}`, "PATCH", { status }).then(() =>
-        apiSend(`/api/notifications/${notificationId}/read`, "POST"),
-      ),
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      void queryClient.invalidateQueries({ queryKey: ["message-conversations"] });
-      void queryClient.invalidateQueries({ queryKey: ["suggested-users"] });
-    },
-  });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -116,6 +99,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             className="desktop-only desktop-header-right"
             ref={dropdownRef}
           >
+            <Link href="/notifications" className="desktop-notification-button" aria-label="Notifications">
+              <Bell size={19} />
+              {latestNotification ? <span className="desktop-notification-dot" /> : null}
+            </Link>
             <Link
               href="/settings"
               className="plan-badge transition-fast hover-lift"
@@ -176,42 +163,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
       </header>
-
-      {/* Notification banner at top of page */}
-      {latestNotification && dismissedNotif !== latestNotification.id ? (
-        <div className="notif-banner animate-notification-slide"
-        >
-          <Bell size={16} className="bell-icon" />
-          <Link href="/notifications" className="banner-text">{latestNotification.content}</Link>
-          {latestNotification.type === "connection_request" && latestNotification.reference_id ? (
-            <div className="notif-banner-actions">
-              <button
-                className="notif-banner-action"
-                disabled={respondToConnection.isPending}
-                onClick={() => respondToConnection.mutate({ connectionId: latestNotification.reference_id!, status: "accepted", notificationId: latestNotification.id })}
-              >
-                Accept
-              </button>
-              <button
-                className="notif-banner-action notif-banner-action--secondary"
-                disabled={respondToConnection.isPending}
-                onClick={() => respondToConnection.mutate({ connectionId: latestNotification.reference_id!, status: "declined", notificationId: latestNotification.id })}
-              >
-                Decline
-              </button>
-            </div>
-          ) : null}
-          <button className="notif-banner-close"
-            onClick={() => {
-              setDismissedNotif(latestNotification.id);
-              dismissNotification.mutate(latestNotification.id);
-            }}
-            aria-label="Dismiss"
-          >
-            <X size={14} />
-          </button>
-        </div>
-      ) : null}
 
       {/* Main content */}
       <main className="container app-main animate-fade-in">{children}</main>
