@@ -2,9 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { Bell, Briefcase, Crown, CreditCard, Eye, KeyRound, Lock, MessageCircle, Shield, Sparkles, Star, ThumbsUp, Users } from "lucide-react";
+import { Bell, Briefcase, Crown, CreditCard, Eye, KeyRound, Lock, MessageCircle, Shield, Sparkles, ThumbsUp, Users } from "lucide-react";
 import { FormEvent, useState } from "react";
-import { UpgradeModal } from "@/components/UpgradeModal";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -19,7 +18,6 @@ const tabs = ["Account", "Privacy", "Plan", "Notifications"];
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState("Account");
   const [showPlan, setShowPlan] = useState(false);
-  const [showUpgrade, setShowUpgrade] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const me = useQuery({ queryKey: ["me"], queryFn: () => apiGet<User>("/api/users/me") });
@@ -99,54 +97,9 @@ export function SettingsPage() {
         ) : null}
         {activeTab === "Plan" ? (
           <div className="grid">
-            <div className="plan-status-row">
-              <div className="row">
-                <Crown color={currentUser.plan === "pro" ? "var(--color-accent)" : "var(--color-text-muted)"} />
-                <strong>Current plan</strong>
-              </div>
-              <span className={`plan-status-badge plan-status-badge--${currentUser.plan === "pro" ? (currentUser.subscription_status === "at_risk" ? "at_risk" : "pro") : "free"}`}>
-                {currentUser.plan === "pro" ? "PRO" : "FREE"}
-              </span>
-            </div>
-
-            {currentUser.plan === "pro" ? (
-              <div className="plan-detail-card">
-                <div className="plan-detail-row">
-                  <span className="plan-detail-label">Status</span>
-                  <span className={`plan-detail-value plan-status-dot--${currentUser.subscription_status === "at_risk" ? "at_risk" : "active"}`}>
-                    {currentUser.subscription_status === "at_risk" ? "Payment at risk" : "Active"}
-                  </span>
-                </div>
-                {currentUser.subscription_period_end ? (
-                  <div className="plan-detail-row">
-                    <span className="plan-detail-label">Renewal date</span>
-                    <span className="plan-detail-value">
-                      {new Date(currentUser.subscription_period_end).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
-                    </span>
-                  </div>
-                ) : null}
-                {(currentUser.subscription_status === "at_risk" || currentUser.subscription_status === "cancelled") ? (
-                  <p className="muted" style={{ fontSize: 13 }}>
-                    {currentUser.subscription_status === "at_risk"
-                      ? "Your last payment failed. Update your payment method to keep Pro features."
-                      : "Your subscription has been cancelled."}
-                  </p>
-                ) : null}
-              </div>
-            ) : (
-              <p className="muted" style={{ fontSize: 13 }}>
-                Free includes 10 messages per week, 30 connections, and public communities.
-                Pro unlocks unlimited messaging, job posting, full mentorship, private groups, analytics, and more.
-              </p>
-            )}
-
-            <div className="row" style={{ gap: 10 }}>
-              {currentUser.plan === "free" ? (
-                <Button variant="accent" onClick={() => setShowPlan(true)}>Compare plans</Button>
-              ) : (
-                <Button variant="ghost" size="sm" onClick={() => setShowPlan(true)}>Compare plans</Button>
-              )}
-            </div>
+            <div className="row"><Crown color="var(--color-accent)" /><strong>Current plan: {currentUser.plan === "pro" ? "Pro" : currentUser.plan === "free" ? "Free" : currentUser.plan}</strong></div>
+            <p className="muted" style={{ fontSize: 13 }}>Free includes 10 messages per week. Pro unlocks unlimited messaging, full mentorship, private groups, profile analytics, and job posting.</p>
+            <Button variant="accent" onClick={() => setShowPlan(true)} style={{ justifySelf: "start" }}>Compare plans</Button>
           </div>
         ) : null}
         {activeTab === "Notifications" ? (
@@ -180,57 +133,25 @@ export function SettingsPage() {
         ) : null}
       </Card>
       {showPlan ? (
-        <Modal title="Compare plans" onClose={() => setShowPlan(false)} size="lg">
-          <div className="plan-comparison-grid">
-            {/* Free card */}
-            <div className="plan-card-compare">
-              <div className="plan-card-compare-header">
-                <h3 className="plan-card-compare-name">Free</h3>
-                <div className="plan-card-compare-price">₦0<span>/month</span></div>
-                <p className="plan-card-compare-desc">For getting started</p>
-              </div>
-              <div className="plan-card-compare-actions">
-                <span className="plan-card-compare-current">Current plan</span>
-              </div>
-            </div>
-
-            {/* Pro card — featured */}
-            <div className="plan-card-compare plan-card-compare--featured">
-              <div className="plan-card-compare-badge"><Sparkles size={12} /> Most Popular</div>
-              <div className="plan-card-compare-header">
-                <h3 className="plan-card-compare-name plan-card-compare-name--pro">
-                  <Crown size={18} /> Pro
-                </h3>
-                <div className="plan-card-compare-price plan-card-compare-price--pro">₦9,000<span>/month</span></div>
-                <p className="plan-card-compare-desc">For ambitious professionals</p>
-              </div>
-              <div className="plan-card-compare-actions">
-                {currentUser.plan === "pro" ? (
-                  <span className="plan-card-compare-current">Current plan</span>
-                ) : (
-                  <button className="plan-upgrade-btn" onClick={() => { setShowPlan(false); setShowUpgrade(true); }}>
-                    <Star size={16} /> Upgrade to Pro
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Sponsor card */}
-            <div className="plan-card-compare">
-              <div className="plan-card-compare-header">
-                <h3 className="plan-card-compare-name">Event Sponsor</h3>
-                <div className="plan-card-compare-price">₦49k<span>/event</span></div>
-                <p className="plan-card-compare-desc">For organisations</p>
-              </div>
-              <div className="plan-card-compare-actions">
-                <p className="muted" style={{ fontSize: 12, textAlign: "center", margin: 0 }}>Featured events, targeting & analytics</p>
-              </div>
-            </div>
+        <Modal title="Plan comparison" onClose={() => setShowPlan(false)}>
+          <div className="grid" style={{ gap: 12 }}>
+            <Card padding="md" style={{ borderColor: "var(--color-line)", boxShadow: "none" }}>
+              <h3 style={{ fontFamily: "var(--font-display)", margin: "0 0 8px" }}>Free</h3>
+              <strong style={{ fontSize: 28, display: "block", marginBottom: 8 }}>₦0/month</strong>
+              <p className="muted" style={{ fontSize: 13, margin: 0 }}>Professional profile, public communities, 30 connections, 10 messages per week, browse jobs and mentorship.</p>
+            </Card>
+            <Card padding="md" variant="sponsored">
+              <h3 style={{ fontFamily: "var(--font-display)", margin: "0 0 8px" }}>Pro</h3>
+              <strong style={{ fontSize: 28, display: "block", marginBottom: 8 }}>₦9,000/month</strong>
+              <p className="muted" style={{ fontSize: 13, margin: 0 }}>Unlimited connections and messaging, job posting, full mentorship matching, halal job alerts, analytics, private groups.</p>
+            </Card>
+            <Card padding="md" style={{ borderColor: "var(--color-line)", boxShadow: "none" }}>
+              <h3 style={{ fontFamily: "var(--font-display)", margin: "0 0 8px" }}>Event Sponsor</h3>
+              <strong style={{ fontSize: 28, display: "block", marginBottom: 8 }}>From ₦49,000/event</strong>
+              <p className="muted" style={{ fontSize: 13, margin: 0 }}>For organisations only: featured events, sponsored slots, targeting, analytics, and Verified Organiser badge.</p>
+            </Card>
           </div>
         </Modal>
-      ) : null}
-      {showUpgrade ? (
-        <UpgradeModal onClose={() => setShowUpgrade(false)} />
       ) : null}
     </PageTransition>
   );
