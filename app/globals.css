@@ -928,6 +928,12 @@ html[lang] { word-break:break-word; }
 .prayer-strip { border-radius:var(--radius-full); padding:9px 14px; background:linear-gradient(90deg, rgba(94,205,181,0.13), rgba(26,107,92,0.05)); }
 .post-actions { margin-top:16px; padding-top:12px; }
 .post-author-link { color:inherit; text-decoration:none; }
+.inline-comments { display:grid; gap:10px; margin-top:12px; padding-top:12px; border-top:1px solid var(--color-line); }
+.inline-comments-list { display:grid; gap:8px; max-height:220px; overflow:auto; }
+.inline-comment { display:grid; gap:2px; padding:9px 11px; border-radius:10px; background:rgba(255,255,255,.035); font-size:13px; }
+.inline-comment span { color:var(--color-text-secondary); line-height:1.45; }
+.inline-comment-form { display:flex; gap:8px; }
+.inline-comment-form input { flex:1; min-width:0; border:1px solid var(--color-line); border-radius:999px; background:rgba(255,255,255,.025); color:var(--color-text-primary); padding:0 13px; }
 .post-action-btn { border-radius:var(--radius-full) !important; padding:6px 9px !important; }
 .input, .textarea { background:rgba(255,255,255,0.025); border-color:rgba(255,255,255,0.10); }
 .input:focus, .textarea:focus { border-color:rgba(94,205,181,0.7); box-shadow:0 0 0 4px rgba(94,205,181,0.10); outline:0; }

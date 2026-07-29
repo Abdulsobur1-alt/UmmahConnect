@@ -1,9 +1,14 @@
+"use client";
+
 import { Heart, MessageCircle, Repeat2, Share2 } from "lucide-react";
 import Link from "next/link";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { formatPostTime } from "@/lib/utils/time";
+import { apiGet, apiSend } from "@/lib/api/client";
 import type { Post } from "@/types";
 
 type PostCardProps = {
@@ -31,6 +36,11 @@ export function PostCard({
   onRepost,
   index = 0,
 }: PostCardProps) {
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentDraft, setCommentDraft] = useState("");
+  const queryClient = useQueryClient();
+  const comments = useQuery({ queryKey: ["post-comments", post.id], queryFn: () => apiGet<any[]>(`/api/posts/${post.id}/comments`), enabled: commentsOpen });
+  const addComment = useMutation({ mutationFn: () => apiSend(`/api/posts/${post.id}/comments`, "POST", { content: commentDraft }), onSuccess: () => { setCommentDraft(""); void comments.refetch(); void queryClient.invalidateQueries({ queryKey: ["posts"] }); } });
   const contentLong = post.content.length > 200;
   const displayContent = isExpanded || !contentLong ? post.content : post.content.slice(0, 200) + "...";
 
@@ -95,9 +105,9 @@ export function PostCard({
           />{" "}
           {post.likes_count}
         </Button>
-        <Link href={`/posts/${post.id}`} className="btn post-action-btn">
+        <Button variant="ghost" size="sm" className="post-action-btn" onClick={() => setCommentsOpen((value) => !value)}>
           <MessageCircle size={16} /> {post.comments_count}
-        </Link>
+        </Button>
         <Button variant="ghost" size="sm" className="post-action-btn" onClick={() => onRepost?.(post.id)}>
           <Repeat2 size={16} /> {post.reposts_count ?? 0}
         </Button>
@@ -105,6 +115,7 @@ export function PostCard({
           <Share2 size={16} /> Share
         </Button>
       </div>
+      {commentsOpen ? <div className="inline-comments"><div className="inline-comments-list">{comments.isLoading ? <span className="muted text-13">Loading comments…</span> : (comments.data ?? []).length === 0 ? <span className="muted text-13">Be the first to comment.</span> : comments.data!.map((comment) => <div key={comment.id} className="inline-comment"><strong>Member</strong><span>{comment.content}</span></div>)}</div><form className="inline-comment-form" onSubmit={(event) => { event.preventDefault(); if (commentDraft.trim()) addComment.mutate(); }}><input value={commentDraft} onChange={(event) => setCommentDraft(event.currentTarget.value)} maxLength={1000} placeholder="Add a thoughtful comment…"/><Button size="sm" disabled={!commentDraft.trim() || addComment.isPending}>Reply</Button></form></div> : null}
     </Card>
   );
 }
