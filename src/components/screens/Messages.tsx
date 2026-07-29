@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { LockKeyhole, MessageCircle, Send } from "lucide-react";
+import { LockKeyhole, MessageCircle, Palette, Send } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { MessageBubble } from "@/components/ui/MessageBubble";
@@ -12,7 +12,18 @@ import { PageTransition } from "@/components/ui/PageTransition";
 import { useToast } from "@/components/ui/Toast";
 import { apiGet, apiSend } from "@/lib/api/client";
 import { trackMetric } from "@/lib/metrics";
+import { isPremiumPlan } from "@/lib/plans";
 import type { Message, User } from "@/types";
+
+const messageThemes = ["emerald", "midnight", "gold"] as const;
+type MessageTheme = (typeof messageThemes)[number];
+
+function getMessageTheme(settings?: User["notification_settings"]): MessageTheme {
+  const theme = settings?.message_theme;
+  return typeof theme === "string" && messageThemes.includes(theme as MessageTheme)
+    ? theme as MessageTheme
+    : "emerald";
+}
 
 export function Messages() {
   const { toast } = useToast();
@@ -21,6 +32,7 @@ export function Messages() {
   const conversations = useQuery({ queryKey: ["message-conversations"], queryFn: () => apiGet<User[]>("/api/messages/conversations") });
   const [activeUserId, setActiveUserId] = useState("");
   const [draft, setDraft] = useState("");
+  const [messageTheme, setMessageTheme] = useState<MessageTheme>("emerald");
   const scrollRef = useRef<HTMLDivElement>(null);
   const thread = useQuery({
     queryKey: ["messages", activeUserId],
@@ -42,10 +54,23 @@ export function Messages() {
       "error",
     ),
   });
+  const saveTheme = useMutation({
+    mutationFn: (theme: MessageTheme) => apiSend("/api/users/me", "PATCH", {
+      notification_settings: { ...me.data?.notification_settings, message_theme: theme },
+    }),
+    onSuccess: (_data, theme) => {
+      setMessageTheme(theme);
+      void queryClient.invalidateQueries({ queryKey: ["me"] });
+    },
+    onError: () => toast("Chat appearance could not be saved.", "error"),
+  });
 
   useEffect(() => {
     if (!activeUserId && conversations.data?.[0]) setActiveUserId(conversations.data[0].id);
   }, [activeUserId, conversations.data]);
+  useEffect(() => {
+    if (me.data) setMessageTheme(getMessageTheme(me.data.notification_settings));
+  }, [me.data]);
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [thread.data]);
@@ -86,7 +111,7 @@ export function Messages() {
           ))}
         </Card>
 
-        <Card padding="md" className="flex-col message-thread-panel" style={{ minHeight: 560 }}>
+        <Card padding="md" className={`flex-col message-thread-panel message-theme--${messageTheme}`} style={{ minHeight: 560 }}>
           <div className="thread-header">
             <Avatar name={active?.full_name ?? "User"} size={36} />
             <div className="flex-1">
@@ -97,6 +122,24 @@ export function Messages() {
             </div>
             {active ? <span className="pill message-connected-pill">Connected</span> : null}
           </div>
+
+          {isPremiumPlan(me.data?.plan) ? (
+            <div className="message-theme-picker" aria-label="Chat appearance">
+              <Palette size={15} aria-hidden="true" />
+              <span>Chat appearance</span>
+              {messageThemes.map((theme) => (
+                <button
+                  key={theme}
+                  type="button"
+                  className={`message-theme-swatch message-theme-swatch--${theme} ${messageTheme === theme ? "is-active" : ""}`}
+                  onClick={() => saveTheme.mutate(theme)}
+                  disabled={saveTheme.isPending}
+                  aria-label={`Use ${theme} chat theme`}
+                  title={`${theme[0].toUpperCase()}${theme.slice(1)} theme`}
+                />
+              ))}
+            </div>
+          ) : null}
 
           <div ref={scrollRef} className="thread-messages">
             {!activeUserId ? (

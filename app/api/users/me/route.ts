@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { ok, fail } from "@/lib/api/helpers";
 import { userDto } from "@/lib/api/mappers";
 import { profileUpdateFields } from "@/lib/profile/update";
+import { isPremiumPlan } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,18 @@ export async function PATCH(req: Request) {
     }
 
     const body = await req.json();
+
+    // Chat appearance is a paid personalization feature. Keep this check on
+    // the server so a free client cannot enable it by crafting a PATCH call.
+    const notificationSettings = body?.notification_settings ?? body?.notificationSettings;
+    if (
+      notificationSettings &&
+      typeof notificationSettings === "object" &&
+      "message_theme" in notificationSettings &&
+      !isPremiumPlan(session.user.plan)
+    ) {
+      return fail("premium_required", 403);
+    }
 
     const update = profileUpdateFields(body);
     if (Object.keys(update).length === 0) return fail("no_valid_fields", 400);

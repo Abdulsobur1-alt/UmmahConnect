@@ -22,7 +22,7 @@ export type User = {
   allow_connection_requests: boolean;
   onboarding_completed: boolean;
   is_verified: boolean;
-  notification_settings: Record<string, boolean>;
+  notification_settings: Record<string, boolean | string>;
   banner_url: string | null;
   avatar_url: string | null;
   created_at: string;

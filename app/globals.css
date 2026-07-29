@@ -461,6 +461,19 @@ button { cursor: pointer; }
 .message-inbox-header { display:flex; align-items:center; justify-content:space-between; padding:14px; border-bottom:1px solid var(--color-line); }
 .message-inbox-header span { color:var(--color-text-muted); font-size:12px; }
 .message-thread-panel { background:linear-gradient(180deg, rgba(255,255,255,.018), transparent 30%); }
+.message-theme--emerald { --message-accent:#1f7a67; --message-accent-soft:rgba(31,122,103,.12); --message-received:rgba(255,255,255,.06); }
+.message-theme--midnight { --message-accent:#405c9b; --message-accent-soft:rgba(64,92,155,.15); --message-received:rgba(83,104,158,.14); }
+.message-theme--gold { --message-accent:#a98c16; --message-accent-soft:rgba(201,168,76,.14); --message-received:rgba(201,168,76,.10); }
+.message-theme-picker { display:flex; align-items:center; gap:7px; padding:10px 0; border-bottom:1px solid var(--color-line); color:var(--color-text-muted); font-size:12px; }
+.message-theme-picker span { margin-right:auto; }
+.message-theme-swatch { width:22px; height:22px; border-radius:50%; border:2px solid transparent; cursor:pointer; transition:transform .15s ease, border-color .15s ease; }
+.message-theme-swatch:hover { transform:scale(1.1); }
+.message-theme-swatch:disabled { opacity:.55; cursor:wait; }
+.message-theme-swatch.is-active { border-color:#fff; box-shadow:0 0 0 2px var(--color-bg); }
+.message-theme-swatch--emerald { background:#1f7a67; }.message-theme-swatch--midnight { background:#405c9b; }.message-theme-swatch--gold { background:#a98c16; }
+.message-thread-panel .message-bubble-sent { background:var(--message-accent, var(--color-primary)); }
+.message-thread-panel .message-bubble-received { background:var(--message-received, rgba(255,255,255,.06)); }
+.message-thread-panel .message-composer-textarea:focus { border-color:var(--message-accent, rgba(94,205,181,.7)); box-shadow:0 0 0 4px var(--message-accent-soft, rgba(94,205,181,.10)); }
 .message-connected-pill { font-size:11px; }
 .message-composer { align-items:flex-end; }
 .message-composer-textarea { flex:1; min-height:48px; max-height:132px; resize:vertical; padding:13px 14px; border:1px solid var(--color-line); border-radius:14px; background:rgba(255,255,255,.025); color:var(--color-text-primary); font:inherit; line-height:1.35; outline:0; }
