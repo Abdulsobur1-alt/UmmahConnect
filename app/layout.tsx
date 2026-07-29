@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { DM_Sans, Playfair_Display } from "next/font/google";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
@@ -26,6 +26,14 @@ export const metadata: Metadata = {
     "Muslim community",
     "professional networking",
   ],
+};
+
+// Public profile links are often opened outside the app shell. Declare the
+// mobile viewport explicitly so browsers never fall back to a desktop width.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

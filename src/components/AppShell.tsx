@@ -69,11 +69,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       if (!brand || !rightControls) return;
 
       const available = container.clientWidth - brand.offsetWidth - rightControls.offsetWidth - 18;
-      // Conservative per-item: padding(10+10) + icon(16) + gap(8) + longest label(~100px) + gap(6)
-      const perItem = 130;
-      const moreWidth = 90;
-      const count = Math.floor((available - moreWidth) / perItem);
-      setMaxVisibleNav(Math.max(2, Math.min(navItems.length, count)));
+      // These are the rendered link budgets (icon, label, inner spacing and
+      // horizontal padding), not a single worst-case estimate. First check
+      // whether every item fits without More; only reserve its width once an
+      // item genuinely needs to move into the menu.
+      const itemWidths = [78, 96, 112, 128, 76, 108, 142];
+      const gap = 6;
+      const moreWidth = 82;
+      const fullWidth = itemWidths.reduce((sum, width) => sum + width, 0) + gap * (navItems.length - 1);
+      if (fullWidth <= available) {
+        setMaxVisibleNav(navItems.length);
+        return;
+      }
+
+      let count = 2;
+      for (let candidate = navItems.length - 1; candidate >= 2; candidate -= 1) {
+        const visibleWidth = itemWidths.slice(0, candidate).reduce((sum, width) => sum + width, 0);
+        const required = visibleWidth + moreWidth + gap * candidate;
+        if (required <= available) {
+          count = candidate;
+          break;
+        }
+      }
+      setMaxVisibleNav(count);
     }
 
     checkFit(navInner);
