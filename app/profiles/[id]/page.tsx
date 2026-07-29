@@ -3,6 +3,7 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PublicLayout } from "@/components/layouts/PublicLayout";
 import { ProfileActions } from "@/components/public/ProfileActions";
+import { BannerUpload } from "@/components/public/BannerUpload";
 import { Avatar } from "@/components/Avatar";
 import { db } from "@/lib/db/client";
 import { users, connections } from "@/lib/db/schema";
@@ -49,6 +50,7 @@ async function fetchProfile(id: string) {
     show_photo: data[0].showPhoto,
     open_to_opportunities: data[0].openToOpportunities,
     avatar_url: data[0].avatarUrl,
+    banner_url: data[0].bannerUrl,
     created_at: data[0].createdAt?.toISOString() ?? null,
   });
 
@@ -89,16 +91,8 @@ export default async function PublicProfilePage({ params }: PageProps) {
             Ummah <span>Connect</span>
           </Link>
           <article className="card public-card" style={{ overflow: 'hidden' }}>
-            {/* Banner photo */}
-            {profile.banner_url ? (
-              <div className="public-banner-wrap">
-                <img
-                  src={profile.banner_url}
-                  alt=""
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                />
-              </div>
-            ) : null}
+            {/* Banner photo — uploadable when viewing own profile */}
+            <BannerUpload bannerUrl={profile.banner_url} isOwner={user?.id === profile.id} />
             <div className="public-profile-header" style={profile.banner_url ? { marginTop: -40 } : undefined}>
               {showAvatar ? (
                 <div style={{ flexShrink: 0, position: 'relative' }}>
