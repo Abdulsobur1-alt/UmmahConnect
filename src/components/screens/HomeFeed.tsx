@@ -5,7 +5,7 @@ import {
   CalendarDays, Send, Star, Sunrise,
   MessageSquare, Sparkles,
 } from "lucide-react";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -80,6 +80,7 @@ export function HomeFeed() {
   const events = useQuery({ queryKey: ["events"], queryFn: () => apiGet<EventListing[]>("/api/events") });
   const prayer = useQuery({ queryKey: ["prayer-times"], queryFn: () => apiGet<Prayer>("/api/prayer-times") });
   const prayerMinutesUntil = useCountdown(prayer.data);
+  const composeRef = useRef<HTMLTextAreaElement>(null);
   const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [animatingLike, setAnimatingLike] = useState<string | null>(null);
@@ -119,6 +120,7 @@ export function HomeFeed() {
     const content = String(form.get("content") ?? "");
     if (content.trim()) createPost.mutate(content);
     event.currentTarget.reset();
+    if (composeRef.current) composeRef.current.style.height = "auto";
   }
 
   const currentUser = me.data;
@@ -167,6 +169,7 @@ export function HomeFeed() {
           <div className="row" style={{ alignItems: "flex-start" }}>
             <Avatar name={currentUser?.full_name ?? "User"} size={36} />
             <textarea
+              ref={composeRef}
               className="textarea transition-normal"
               name="content"
               placeholder="Share something with your community..."
@@ -177,6 +180,11 @@ export function HomeFeed() {
                 fontSize: 14,
                 padding: "10px 14px",
                 transition: "min-height 0.2s ease",
+              }}
+              onInput={(e) => {
+                const el = e.currentTarget;
+                el.style.height = "auto";
+                el.style.height = Math.min(el.scrollHeight, 200) + "px";
               }}
               onFocus={(e) => { e.currentTarget.style.minHeight = "72px"; }}
               onBlur={(e) => { if (!e.currentTarget.value) e.currentTarget.style.minHeight = "44px"; }}

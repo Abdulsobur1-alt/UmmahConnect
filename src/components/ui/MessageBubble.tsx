@@ -4,6 +4,7 @@ type MessageBubbleProps = {
   content: string;
   created_at: string;
   isMine: boolean;
+  isRead?: boolean;
   showDateHeader?: boolean;
 };
 
@@ -11,7 +12,7 @@ type MessageBubbleProps = {
  * MessageBubble — renders a chat message bubble with correct alignment and styling.
  * Sent messages: right-aligned teal. Received: left-aligned dark card.
  */
-export function MessageBubble({ content, created_at, isMine, showDateHeader }: MessageBubbleProps) {
+export function MessageBubble({ content, created_at, isMine, isRead, showDateHeader }: MessageBubbleProps) {
   return (
     <div>
       {showDateHeader && (
@@ -31,6 +32,11 @@ export function MessageBubble({ content, created_at, isMine, showDateHeader }: M
         </div>
         <span className="message-timestamp">
           {formatMessageTime(created_at)}
+          {isMine && isRead !== undefined ? (
+            <span style={{ marginLeft: 6, color: isRead ? 'var(--color-success)' : 'var(--color-text-muted)', fontSize: 11 }}>
+              {isRead ? '✓✓' : '✓'}
+            </span>
+          ) : null}
         </span>
       </div>
     </div>

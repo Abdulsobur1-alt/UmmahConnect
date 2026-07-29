@@ -233,7 +233,10 @@ export function Discover() {
       {/* SECTION 4 — Halal Job Picks */}
       {halalJobs.length > 0 && (
         <section>
-          <h2 style={sectionTitle}>Halal Job Picks</h2>
+          <div className="flex-between" style={{ marginBottom: 12 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Halal Job Picks</h2>
+            <Link href="/jobs" className="text-accent text-13" style={{ fontWeight: 600 }}>View all →</Link>
+          </div>
           <Stagger as="div" style={{ display: "grid", gap: 8 }}>
             {halalJobs.map((job) => (
               <Card key={job.id} padding="md" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

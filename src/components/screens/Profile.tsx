@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, Edit3, MapPin, MessageCircle, Mail, Users, FileText, Globe, Briefcase, CheckCircle2 } from "lucide-react";
+import { Camera, Edit3, MapPin, MessageCircle, Mail, Users, FileText, Globe, Briefcase, CheckCircle2, Share2 } from "lucide-react";
 import { PostCard } from "@/components/ui/PostCard";
 import { FormEvent, useRef, useState } from "react";
 import { Avatar } from "@/components/Avatar";
@@ -177,14 +177,27 @@ export function Profile() {
             </button>
           ) : null}
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          icon={<Edit3 size={14} />}
-          onClick={() => setEditing(true)}
-        >
-          Edit Profile
-        </Button>
+        <div className="row" style={{ gap: 8 }}>
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Share2 size={14} />}
+            onClick={() => {
+              navigator.clipboard.writeText(`${window.location.origin}/profiles/${currentUser.id}`);
+              toast("Profile link copied", "success");
+            }}
+          >
+            Share
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Edit3 size={14} />}
+            onClick={() => setEditing(true)}
+          >
+            Edit Profile
+          </Button>
+        </div>
       </div>
 
       {/* 3. Name + Industry + Location + Bio + Skills */}

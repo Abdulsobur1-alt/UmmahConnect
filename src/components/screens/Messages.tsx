@@ -152,6 +152,7 @@ export function Messages() {
                 content={message.content}
                 created_at={message.created_at}
                 isMine={message.sender_id === me.data?.id}
+                isRead={message.is_read}
                 showDateHeader={index > 0 && new Date(message.created_at).toDateString() !== new Date(list[index - 1].created_at).toDateString()}
               />
             ))}
