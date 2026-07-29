@@ -26,8 +26,6 @@ export type User = {
   banner_url: string | null;
   avatar_url: string | null;
   created_at: string;
-  subscription_status?: string | null;
-  subscription_period_end?: string | null;
 };
 
 export type Post = {
