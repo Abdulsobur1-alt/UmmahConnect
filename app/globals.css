@@ -158,7 +158,13 @@ button { cursor: pointer; }
 .card { background: var(--color-bg-secondary); border:1px solid var(--color-line-light); border-radius:var(--radius-lg); padding:var(--space-xl); }
 .card--strong { background: var(--color-bg-secondary); }
 .public-card { padding:var(--space-3xl); }
-@media (max-width:768px) { .public-card { padding:var(--space-xl); } .public-brand { font-size:22px; } }
+@media (max-width:768px) {
+  .public-card { padding:var(--space-lg); }
+  .public-brand { font-size:20px; }
+  .page { padding:16px 0; }
+  .public-copy { margin-top:var(--space-md); font-size:13px; }
+  .public-text { font-size:14px; }
+}
 .plan-price { font-size: var(--text-h2); font-weight: 700; margin: var(--space-md) 0; }
 
 /* Auth utilities */
@@ -212,6 +218,10 @@ button { cursor: pointer; }
 .public-brand { display:inline-block; margin-bottom:var(--space-2xl); }
 .public-copy { margin-top:var(--space-xl); }
 .public-text { margin-top:var(--space-xl); line-height:var(--lh-relaxed); }
+.public-profile-header { display:flex; align-items:center; gap:var(--space-lg); }
+.public-profile-header h1 { margin:0; }
+.public-profile-header .public-copy { margin-top:var(--space-sm); }
+.public-profile-name { font-size:clamp(24px, 4vw, 40px); }
 .public-section { margin-top:var(--space-3xl); }
 .public-subtitle { font-size:var(--text-h2); margin-bottom:var(--space-lg); }
 .public-comments { gap:var(--space-md); }
@@ -260,7 +270,7 @@ button { cursor: pointer; }
 .app-nav-inner { min-height:72px; display:flex; align-items:center; justify-content:space-between; gap:18px; flex-wrap:nowrap }
 .brand { flex:0 0 auto; white-space:nowrap; font-family:var(--font-display); font-weight:900; color:#fff; font-size:26px }
 .brand span { color:var(--color-accent); }
-.nav-links { display:flex; align-items:center; gap:6px; flex-wrap:nowrap; min-width:0; white-space:nowrap }
+.nav-links { display:flex; align-items:center; gap:6px; flex-wrap:nowrap; min-width:0; white-space:nowrap; flex:1; }
 .nav-link { border-radius:var(--radius-sm); padding:9px 10px; color:var(--color-text-muted); font-size:var(--text-body); font-weight:600 }
 .nav-link-active { background:var(--color-primary); color:#fff }
 .desktop-nav-more { position:relative; }

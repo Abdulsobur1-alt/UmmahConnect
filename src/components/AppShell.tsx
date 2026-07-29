@@ -56,25 +56,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Fluid More menu — dynamically count how many nav items fit without overflowing
+  // Fluid More menu — measure available space between brand and right controls
+  // so nav items never overflow into the notification/account controls.
+  // Uses conservative estimates; flex:1 on nav-links prevents overflow regardless.
   useEffect(() => {
-    const navLinks = navLinksRef.current;
-    if (!navLinks) return;
+    const navInner = document.querySelector('.app-nav-inner') as HTMLElement | null;
+    if (!navInner) return;
 
-    function checkFit(el: HTMLDivElement) {
-      const itemWidth = 94;
-      const moreWidth = 82;
-      const gaps = 6;
-      const available = el.offsetWidth;
-      const maxItems = Math.floor((available - moreWidth - gaps) / (itemWidth + gaps));
-      setMaxVisibleNav(Math.max(2, Math.min(navItems.length, maxItems)));
+    function checkFit(container: HTMLElement) {
+      const brand = container.querySelector('.brand') as HTMLElement | null;
+      const rightControls = container.querySelector('.desktop-header-right') as HTMLElement | null;
+      if (!brand || !rightControls) return;
+
+      const available = container.clientWidth - brand.offsetWidth - rightControls.offsetWidth - 18;
+      // Conservative per-item: padding(10+10) + icon(16) + gap(8) + longest label(~100px) + gap(6)
+      const perItem = 130;
+      const moreWidth = 90;
+      const count = Math.floor((available - moreWidth) / perItem);
+      setMaxVisibleNav(Math.max(2, Math.min(navItems.length, count)));
     }
 
-    checkFit(navLinks);
+    checkFit(navInner);
     const observer = new ResizeObserver(() => {
-      if (navLinksRef.current) checkFit(navLinksRef.current);
+      const el = document.querySelector('.app-nav-inner') as HTMLElement | null;
+      if (el) checkFit(el);
     });
-    observer.observe(navLinks);
+    observer.observe(navInner);
     return () => observer.disconnect();
   }, []);
 

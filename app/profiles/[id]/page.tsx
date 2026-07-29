@@ -3,6 +3,7 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PublicLayout } from "@/components/layouts/PublicLayout";
 import { ProfileActions } from "@/components/public/ProfileActions";
+import { Avatar } from "@/components/Avatar";
 import { db } from "@/lib/db/client";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -56,6 +57,8 @@ export default async function PublicProfilePage({ params }: PageProps) {
   ]);
   if (!profile) notFound();
 
+  const showAvatar = profile.show_photo !== false;
+
   return (
     <PublicLayout user={user}>
       <main className="page">
@@ -64,13 +67,25 @@ export default async function PublicProfilePage({ params }: PageProps) {
             Ummah <span>Connect</span>
           </Link>
           <article className="card public-card">
-            <h1 className="font-display">{profile.full_name}</h1>
-            <p className="muted public-copy">
-              {profile.career_stage} · {profile.industry} · {profile.city},{" "}
-              {profile.country}
-            </p>
+            <div className="public-profile-header">
+              {showAvatar ? (
+                <div style={{ flexShrink: 0, position: 'relative' }}>
+                  <Avatar name={profile.full_name} size={72} src={profile.avatar_url} />
+                </div>
+              ) : null}
+              <div>
+                <h1 className="font-display public-profile-name">{profile.full_name}</h1>
+                <p className="muted public-copy">
+                  {[profile.career_stage, profile.industry, [profile.city, profile.country].filter(Boolean).join(", ")]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              </div>
+            </div>
             {profile.open_to_opportunities ? (
-              <span className="pill pill--active">Open to opportunities</span>
+              <span className="pill pill--active" style={{ marginTop: 14, display: "inline-flex" }}>
+                Open to opportunities
+              </span>
             ) : null}
             {profile.bio ? <p className="public-text">{profile.bio}</p> : null}
             {profile.skills.length > 0 ? (

@@ -120,6 +120,7 @@ export function publicProfileDto(user: any) {
     open_to_opportunities: b(user, 'open_to_opportunities', 'openToOpportunities'),
     allow_connection_requests: b(user, 'allow_connection_requests', 'allowConnectionRequests'),
     onboarding_completed: b(user, 'onboarding_completed', 'onboardingCompleted'),
+    show_photo: b(user, 'show_photo', 'showPhoto'),
     is_verified: b(user, 'is_verified', 'isVerified'),
     notification_settings: user.notification_settings ?? user.notificationSettings ?? {},
     banner_url: s(user, 'banner_url', 'bannerUrl') || null,
