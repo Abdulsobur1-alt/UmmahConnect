@@ -213,7 +213,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <MoreHorizontal size={17} /> More
                 </button>
                 {showMoreNav ? (
-                  <div className="desktop-more-menu">
+                  <div className="desktop-more-menu animate-scale-in">
                     {overflowItems.map((item) => {
                       const Icon = item.icon;
                       return (

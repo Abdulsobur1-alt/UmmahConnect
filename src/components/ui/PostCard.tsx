@@ -3,7 +3,7 @@
 import { Heart, MessageCircle, Repeat2, Share2 } from "lucide-react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -46,9 +46,24 @@ export function PostCard({
 }: PostCardProps) {
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [commentDraft, setCommentDraft] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const queryClient = useQueryClient();
+
+  // Auto-resize comment textarea as the user types
+  const autoResizeTextarea = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 160) + "px";
+  }, []);
   const comments = useQuery({ queryKey: ["post-comments", post.id], queryFn: () => apiGet<CommentData[]>(`/api/posts/${post.id}/comments`), enabled: commentsOpen });
-  const addComment = useMutation({ mutationFn: () => apiSend(`/api/posts/${post.id}/comments`, "POST", { content: commentDraft }), onSuccess: () => { setCommentDraft(""); void comments.refetch(); void queryClient.invalidateQueries({ queryKey: ["posts"] }); } });
+  const addComment = useMutation({ mutationFn: () => apiSend(`/api/posts/${post.id}/comments`, "POST", { content: commentDraft }), onSuccess: () => {
+    setCommentDraft("");
+    // Reset textarea height after submission
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
+    void comments.refetch();
+    void queryClient.invalidateQueries({ queryKey: ["posts"] });
+  } });
   const contentLong = post.content.length > 200;
   const displayContent = isExpanded || !contentLong ? post.content : post.content.slice(0, 200) + "...";
 
@@ -154,8 +169,12 @@ export function PostCard({
             }}
           >
             <textarea
+              ref={textareaRef}
               value={commentDraft}
-              onChange={(event) => setCommentDraft(event.currentTarget.value)}
+              onChange={(event) => {
+                setCommentDraft(event.currentTarget.value);
+                autoResizeTextarea();
+              }}
               maxLength={1000}
               placeholder="Add a thoughtful comment…"
               className="inline-comment-textarea"

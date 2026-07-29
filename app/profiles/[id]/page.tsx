@@ -5,8 +5,8 @@ import { PublicLayout } from "@/components/layouts/PublicLayout";
 import { ProfileActions } from "@/components/public/ProfileActions";
 import { Avatar } from "@/components/Avatar";
 import { db } from "@/lib/db/client";
-import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { users, connections } from "@/lib/db/schema";
+import { eq, or, and, sql } from "drizzle-orm";
 import { publicProfileDto } from "@/lib/api/mappers";
 import { getSessionUser } from "@/lib/auth/session";
 
@@ -20,7 +20,22 @@ async function fetchProfile(id: string) {
     .limit(1);
 
   if (!data[0] || data[0].isBanned) return null;
-  return publicProfileDto({
+
+  // Count accepted connections
+  const [connResult] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(connections)
+    .where(
+      and(
+        or(
+          eq(connections.requesterId, id),
+          eq(connections.receiverId, id),
+        ),
+        eq(connections.status, 'accepted'),
+      ),
+    );
+
+  const profile = publicProfileDto({
     id: data[0].id,
     full_name: data[0].fullName,
     email: data[0].email,
@@ -36,6 +51,8 @@ async function fetchProfile(id: string) {
     avatar_url: data[0].avatarUrl,
     created_at: data[0].createdAt?.toISOString() ?? null,
   });
+
+  return { ...profile, connection_count: connResult?.count ?? 0 };
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -59,6 +76,11 @@ export default async function PublicProfilePage({ params }: PageProps) {
 
   const showAvatar = profile.show_photo !== false;
 
+  // Format member-since date nicely
+  const memberSince = profile.created_at
+    ? new Date(profile.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
+    : null;
+
   return (
     <PublicLayout user={user}>
       <main className="page">
@@ -66,8 +88,18 @@ export default async function PublicProfilePage({ params }: PageProps) {
           <Link href="/" className="brand public-brand">
             Ummah <span>Connect</span>
           </Link>
-          <article className="card public-card">
-            <div className="public-profile-header">
+          <article className="card public-card" style={{ overflow: 'hidden' }}>
+            {/* Banner photo */}
+            {profile.banner_url ? (
+              <div className="public-banner-wrap">
+                <img
+                  src={profile.banner_url}
+                  alt=""
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+              </div>
+            ) : null}
+            <div className="public-profile-header" style={profile.banner_url ? { marginTop: -40 } : undefined}>
               {showAvatar ? (
                 <div style={{ flexShrink: 0, position: 'relative' }}>
                   <Avatar name={profile.full_name} size={72} src={profile.avatar_url} />
@@ -81,6 +113,15 @@ export default async function PublicProfilePage({ params }: PageProps) {
                     .join(" · ")}
                 </p>
               </div>
+            </div>
+            {/* Meta row: connection count + member since */}
+            <div className="row" style={{ gap: 'var(--space-xl)', marginTop: 12, fontSize: 13, color: 'var(--color-text-muted)' }}>
+              {profile.connection_count > 0 ? (
+                <span><strong style={{ color: 'var(--color-text-secondary)' }}>{profile.connection_count}</strong> {profile.connection_count === 1 ? 'connection' : 'connections'}</span>
+              ) : null}
+              {memberSince ? (
+                <span>Joined {memberSince}</span>
+              ) : null}
             </div>
             {profile.open_to_opportunities ? (
               <span className="pill pill--active" style={{ marginTop: 14, display: "inline-flex" }}>
