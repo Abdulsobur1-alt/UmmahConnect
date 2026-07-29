@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Briefcase, Plus, Search, Bookmark, ArrowRight, Home } from "lucide-react";
+import { Briefcase, Plus, Search, Bookmark, ArrowRight, CheckCircle, Home } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { HalalBadge } from "@/components/HalalBadge";
 import { Button } from "@/components/ui/Button";
@@ -26,6 +26,7 @@ export function Jobs() {
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [appliedJobs, setAppliedJobs] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const me = useQuery({ queryKey: ["me"], queryFn: () => apiGet<User>("/api/users/me") });
@@ -54,7 +55,8 @@ export function Jobs() {
   });
   const apply = useMutation({
     mutationFn: (jobId: string) => apiSend<{ applied: boolean; already_applied: boolean }>(`/api/jobs/${jobId}/apply`, "POST"),
-    onSuccess: (data) => {
+    onSuccess: (data, jobId) => {
+      setAppliedJobs((prev) => new Set(prev).add(jobId));
       toast(data.already_applied ? "You already recorded interest in this role." : "Interest recorded. The poster has been notified.", "success");
       trackMetric("job_application");
     },
@@ -64,8 +66,8 @@ export function Jobs() {
   const filteredJobs = useMemo(() => {
     return (jobs.data ?? []).filter((job) => {
       const matchesSearch = !normalizedSearch ||
-        [job.title, job.company, job.location, job.industry, job.career_stage].some((value) =>
-          value.toLowerCase().includes(normalizedSearch),
+        [job.title, job.company, job.location, job.industry, job.career_stage, job.salary_range].some((value) =>
+          value?.toLowerCase().includes(normalizedSearch) ?? false,
         );
       const matchesFilter =
         activeFilter === "All" ||
@@ -138,6 +140,7 @@ export function Jobs() {
       <Stagger as="div" style={{ display: "grid", gap: 10 }}>
         {filteredJobs.map((job) => {
           const isSaved = saved.data?.includes(job.id) ?? false;
+          const isApplied = appliedJobs.has(job.id);
           return (
             <Card
               key={job.id}
@@ -214,6 +217,23 @@ export function Jobs() {
                         <Home size={11} /> Remote
                       </span>
                     )}
+                    {job.salary_range && (
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          padding: "3px 8px",
+                          borderRadius: 100,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          background: "var(--color-primary-light)",
+                          color: "var(--color-primary)",
+                        }}
+                      >
+                        {job.salary_range}
+                      </span>
+                    )}
                   </div>
 
                   {/* Actions */}
@@ -235,6 +255,11 @@ export function Jobs() {
                     >
                       {isSaved ? "Saved" : "Save"}
                     </Button>
+                    {isApplied ? (
+                      <span className="pill" style={{ fontSize: 12, marginLeft: 'auto' }}>
+                        <CheckCircle size={14} /> Applied
+                      </span>
+                    ) : (
                     <Button
                       variant="primary"
                       size="sm"
@@ -245,6 +270,7 @@ export function Jobs() {
                     >
                       Apply Now
                     </Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -353,14 +379,58 @@ export function Jobs() {
             </span>
             {selectedJob.is_halal_verified && <HalalBadge />}
           </div>
+
+          {/* Similar jobs */}
+          {(jobs.data ?? []).filter((j) => j.id !== selectedJob.id && j.industry === selectedJob.industry).length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <strong className="text-14" style={{ display: 'block', marginBottom: 8 }}>Similar roles</strong>
+              <div className="grid" style={{ gap: 6 }}>
+                {(jobs.data ?? [])
+                  .filter((j) => j.id !== selectedJob.id && j.industry === selectedJob.industry)
+                  .slice(0, 3)
+                  .map((similar) => (
+                    <button
+                      key={similar.id}
+                      className="row"
+                      onClick={() => setSelectedJob(similar)}
+                      style={{
+                        gap: 8,
+                        padding: '8px 10px',
+                        borderRadius: 8,
+                        border: '1px solid var(--color-line-light)',
+                        background: 'var(--color-bg-dark)',
+                        cursor: 'pointer',
+                        width: '100%',
+                        textAlign: 'left',
+                      }}
+                    >
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--color-primary-light)', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 700, color: 'var(--color-primary)', flexShrink: 0 }}>
+                        {similar.company.charAt(0)}
+                      </div>
+                      <div className="flex-1" style={{ minWidth: 0 }}>
+                        <div className="text-13" style={{ fontWeight: 600 }}>{similar.title}</div>
+                        <div className="muted" style={{ fontSize: 11 }}>{similar.company}</div>
+                      </div>
+                    </button>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {appliedJobs.has(selectedJob.id) ? (
+            <span className="pill" style={{ marginTop: 16, width: '100%', justifyContent: 'center' }}>
+              <CheckCircle size={16} /> Applied
+            </span>
+          ) : (
           <button
             className="btn btn-primary"
             style={{ marginTop: 16, width: "100%", borderRadius: 100 }}
             onClick={() => apply.mutate(selectedJob.id)}
             disabled={apply.isPending}
           >
-            Apply for this role
+            {apply.isPending ? "Applying..." : "Apply for this role"}
           </button>
+          )}
         </Modal>
       ) : null}
 
