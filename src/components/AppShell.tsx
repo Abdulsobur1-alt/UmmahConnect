@@ -39,6 +39,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const moreNavRef = useRef<HTMLDivElement>(null);
   const navLinksRef = useRef<HTMLDivElement>(null);
+  const measuredWidthsRef = useRef<number[] | null>(null);
   const { data: currentUser } = useQuery({ queryKey: ["me"], queryFn: () => apiGet<User>("/api/users/me") });
   const { data: notifications = [] } = useQuery({
     queryKey: ["notifications"],
@@ -74,51 +75,89 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setShowMoreNav(false);
   }, [pathname]);
 
-  // Fluid More menu — measure available space between brand and right controls
-  // so nav items never overflow into the notification/account controls.
-  // Uses conservative estimates; flex:1 on nav-links prevents overflow regardless.
+  // Fluid More menu — measure actual rendered DOM widths at each zoom level so
+  // the nav container flexes naturally based on real space. Uses ResizeObserver
+  // for window/zoom changes and MutationObserver for when items move between
+  // the visible nav row and the "More" dropdown.
   useEffect(() => {
     const navInner = document.querySelector('.app-nav-inner') as HTMLElement | null;
     if (!navInner) return;
 
-    function checkFit(container: HTMLElement) {
+    function checkFit() {
+      const container = navInner as HTMLElement;
       const brand = container.querySelector('.brand') as HTMLElement | null;
       const rightControls = container.querySelector('.desktop-header-right') as HTMLElement | null;
       if (!brand || !rightControls) return;
 
       const available = container.clientWidth - brand.offsetWidth - rightControls.offsetWidth - 18;
-      // These are the rendered link budgets (icon, label, inner spacing and
-      // horizontal padding), not a single worst-case estimate. First check
-      // whether every item fits without More; only reserve its width once an
-      // item genuinely needs to move into the menu.
-      const itemWidths = [78, 96, 112, 128, 76, 108, 142];
       const gap = 6;
-      const moreWidth = 82;
-      const fullWidth = itemWidths.reduce((sum, width) => sum + width, 0) + gap * (navItems.length - 1);
-      if (fullWidth <= available) {
-        setMaxVisibleNav(navItems.length);
+      const moreBtnWidth = 86;
+
+      // Measure actual rendered nav link widths from the DOM
+      const linkEls = container.querySelectorAll('.nav-links > .nav-link') as NodeListOf<HTMLElement>;
+
+      if (linkEls.length > 0) {
+        // Cache when all items are visible (first paint or after fitting again)
+        if (linkEls.length === navItems.length) {
+          measuredWidthsRef.current = Array.from(linkEls).map(el => el.offsetWidth + gap);
+        }
+      }
+
+      const widths = measuredWidthsRef.current;
+      if (!widths || widths.length === 0) return;
+
+      const totalAllItems = widths.reduce((sum, w) => sum + w, 0);
+
+      if (totalAllItems + moreBtnWidth <= available) {
+        // Everything fits — show all; cached widths will be refreshed on next
+        // cycle because all items are now visible again.
+        setMaxVisibleNav(prev => prev !== navItems.length ? navItems.length : prev);
         return;
       }
 
-      let count = 2;
-      for (let candidate = navItems.length - 1; candidate >= 2; candidate -= 1) {
-        const visibleWidth = itemWidths.slice(0, candidate).reduce((sum, width) => sum + width, 0);
-        const required = visibleWidth + moreWidth + gap * candidate;
-        if (required <= available) {
-          count = candidate;
-          break;
-        }
+      // Not every item fits — count how many visible items + More button do
+      let used = moreBtnWidth;
+      let count = 0;
+      for (const w of widths) {
+        if (used + w > available) break;
+        used += w;
+        count++;
       }
-      setMaxVisibleNav(count);
+      let newCount = Math.max(2, Math.min(count, navItems.length));
+
+      // Overflow safeguard: if the DOM scrolls beyond its container despite
+      // our calculation (e.g., stale cached widths after zoom-in), back off.
+      const navLinksEl = container.querySelector('.nav-links') as HTMLElement | null;
+      if (navLinksEl && navLinksEl.scrollWidth > navLinksEl.clientWidth + 2) {
+        newCount = Math.max(2, newCount - 1);
+      }
+
+      setMaxVisibleNav(prev => prev !== newCount ? newCount : prev);
     }
 
-    checkFit(navInner);
-    const observer = new ResizeObserver(() => {
-      const el = document.querySelector('.app-nav-inner') as HTMLElement | null;
-      if (el) checkFit(el);
-    });
-    observer.observe(navInner);
-    return () => observer.disconnect();
+    function scheduleCheck() {
+      requestAnimationFrame(checkFit);
+    }
+
+    // Observe parent for resize (window resize, zoom, etc.)
+    const resizeObserver = new ResizeObserver(scheduleCheck);
+    resizeObserver.observe(navInner);
+
+    // Observe nav-links for content changes (items moving between row and dropdown)
+    const navLinks = navInner.querySelector('.nav-links') as HTMLElement | null;
+    let mutationObserver: MutationObserver | null = null;
+    if (navLinks) {
+      mutationObserver = new MutationObserver(scheduleCheck);
+      mutationObserver.observe(navLinks, { childList: true });
+    }
+
+    // Initial measurement
+    scheduleCheck();
+
+    return () => {
+      resizeObserver.disconnect();
+      mutationObserver?.disconnect();
+    };
   }, []);
 
   const visibleItems = navItems.slice(0, maxVisibleNav);
