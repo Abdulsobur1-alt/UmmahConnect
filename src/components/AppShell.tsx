@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Briefcase, Compass, Home, MessageCircle, Settings, Megaphone,
-  Sparkles, UserRound, ChevronDown, LogOut, Bell,
+  Sparkles, UserRound, ChevronDown, LogOut, Bell, MoreHorizontal,
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { apiGet } from "@/lib/api/client";
@@ -33,6 +33,7 @@ const bottomTabs = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showMoreNav, setShowMoreNav] = useState(false);
   const [dropdownAnimating, setDropdownAnimating] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { data: currentUser } = useQuery({ queryKey: ["me"], queryFn: () => apiGet<User>("/api/users/me") });
@@ -85,7 +86,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`nav-link ${active ? "nav-link-active" : ""} transition-fast`}
+                  className={`nav-link nav-link--${item.href.slice(1)} ${active ? "nav-link-active" : ""} transition-fast`}
                 >
                   <span className="row">
                     <Icon size={16} />
@@ -94,6 +95,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </Link>
               );
             })}
+            <div className="desktop-nav-more">
+              <button className={`nav-link nav-link-more ${["/mentorship", "/messages", "/announcements"].includes(pathname) ? "nav-link-active" : ""}`} onClick={() => setShowMoreNav((value) => !value)}>
+                <MoreHorizontal size={17} /> More
+              </button>
+              {showMoreNav ? <div className="desktop-more-menu">
+                {navItems.slice(3).map((item) => { const Icon = item.icon; return <Link key={item.href} href={item.href} className="dropdown-item" onClick={() => setShowMoreNav(false)}><Icon size={16}/>{item.label}</Link>; })}
+              </div> : null}
+            </div>
           </div>
           {/* Avatar dropdown — desktop */}
           <div
