@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { LockKeyhole, MessageCircle, Palette, Send } from "lucide-react";
+import { LockKeyhole, MessageCircle, Palette, Search, Send, Smile } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { MessageBubble } from "@/components/ui/MessageBubble";
@@ -14,6 +14,8 @@ import { apiGet, apiSend } from "@/lib/api/client";
 import { trackMetric } from "@/lib/metrics";
 import { isPremiumPlan } from "@/lib/plans";
 import type { Message, User } from "@/types";
+
+const EMOJI_LIST = ["😊","😂","❤️","👍","🎉","🔥","💪","🙏","🌙","✨","🤲","🕌","📖","☪️","💚","🤝","🎯","💡","🚀","💫"];
 
 const messageThemes = ["emerald", "midnight", "gold"] as const;
 type MessageTheme = (typeof messageThemes)[number];
@@ -33,6 +35,9 @@ export function Messages() {
   const [activeUserId, setActiveUserId] = useState("");
   const [draft, setDraft] = useState("");
   const [messageTheme, setMessageTheme] = useState<MessageTheme>("emerald");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const thread = useQuery({
     queryKey: ["messages", activeUserId],
@@ -65,6 +70,18 @@ export function Messages() {
     onError: () => toast("Chat appearance could not be saved.", "error"),
   });
 
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    if (!showEmojiPicker) return;
+    function handleClick(e: MouseEvent) {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showEmojiPicker]);
+
   useEffect(() => {
     if (!activeUserId && conversations.data?.[0]) setActiveUserId(conversations.data[0].id);
   }, [activeUserId, conversations.data]);
@@ -74,6 +91,14 @@ export function Messages() {
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [thread.data]);
+
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const filteredConversations = useMemo(
+    () => (conversations.data ?? []).filter(
+      (user) => !normalizedSearch || user.full_name.toLowerCase().includes(normalizedSearch),
+    ),
+    [conversations.data, normalizedSearch],
+  );
 
   const active = useMemo(
     () => conversations.data?.find((user) => user.id === activeUserId),
@@ -98,9 +123,31 @@ export function Messages() {
       <div className="messages-layout" style={{ gap: 14 }}>
         <Card padding="none" className="flex-col message-inbox" style={{ overflow: "hidden" }}>
           <div className="message-inbox-header"><strong>Connections</strong><span>{conversations.data?.length ?? 0}</span></div>
-          {(conversations.data ?? []).length === 0 ? (
-            <EmptyState icon={<LockKeyhole size={24} />} title="No connected members yet" description="Send a connection request in Discover. Messaging becomes available once it is accepted." variant="compact" />
-          ) : conversations.data!.map((user) => (
+          {/* Message search */}
+          <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--color-line-light)' }}>
+            <div className="row" style={{ gap: 6, background: 'var(--color-bg-dark)', borderRadius: 8, padding: '6px 10px' }}>
+              <Search size={14} className="muted" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.currentTarget.value)}
+                placeholder="Search conversations..."
+                style={{
+                  flex: 1,
+                  border: 0,
+                  background: 'transparent',
+                  color: 'var(--color-text-primary)',
+                  fontSize: 13,
+                  outline: 0,
+                }}
+              />
+            </div>
+          </div>
+          {(filteredConversations).length === 0 ? (
+            <div style={{ padding: 16 }}>
+              <EmptyState icon={<Search size={24} />} title={searchQuery ? "No matches" : "No connected members yet"} description={searchQuery ? "Try a different name." : "Send a connection request in Discover."} variant="compact" />
+            </div>
+          ) : filteredConversations.map((user) => (
             <button key={user.id} onClick={() => setActiveUserId(user.id)} className={`conversation-btn ${user.id === activeUserId ? "conversation-btn--active" : ""}`}>
               <Avatar name={user.full_name} size={40} />
               <div className="flex-1">
@@ -169,6 +216,61 @@ export function Messages() {
               className="message-composer-textarea"
               rows={1}
             />
+            {/* Emoji picker */}
+            <div ref={emojiPickerRef} style={{ position: 'relative' }}>
+              <button
+                type="button"
+                className="btn-link"
+                disabled={!activeUserId}
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                aria-label="Add emoji"
+                style={{ padding: 8, borderRadius: 8, color: 'var(--color-text-muted)', fontSize: 20 }}
+              >
+                <Smile size={20} />
+              </button>
+              {showEmojiPicker ? (
+                <div
+                  className="emoji-grid"
+                  style={{
+                    position: 'absolute',
+                    bottom: '100%',
+                    right: 0,
+                    marginBottom: 6,
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(5, 1fr)',
+                    gap: 4,
+                    padding: 10,
+                    borderRadius: 12,
+                    border: '1px solid var(--color-line)',
+                    background: 'var(--color-bg-secondary)',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+                    zIndex: 20,
+                  }}
+                >
+                  {EMOJI_LIST.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      className="emoji-btn"
+                      onClick={() => { setDraft((prev) => prev + emoji); setShowEmojiPicker(false); }}
+                      style={{
+                        width: 36,
+                        height: 36,
+                        display: 'grid',
+                        placeItems: 'center',
+                        border: 0,
+                        borderRadius: 8,
+                        background: 'transparent',
+                        fontSize: 20,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
             <Button type="submit" disabled={send.isPending || !activeUserId || !draft.trim()} icon={<Send size={20} />} loading={send.isPending} aria-label="Send message" style={{ width: 48, height: 48, borderRadius: "50%", padding: 0, minHeight: 48 }}><></></Button>
           </form>
           {activeUserId ? <div className="message-composer-meta">Private to accepted connections · {draft.length}/2000</div> : null}
