@@ -68,6 +68,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("keydown", closeMoreOnEscape);
   }, []);
 
+  // Layouts persist between App Router navigations. Never leave an open menu
+  // floating over the destination page after a navigation completes.
+  useEffect(() => {
+    setShowMoreNav(false);
+  }, [pathname]);
+
   // Fluid More menu — measure available space between brand and right controls
   // so nav items never overflow into the notification/account controls.
   // Uses conservative estimates; flex:1 on nav-links prevents overflow regardless.
