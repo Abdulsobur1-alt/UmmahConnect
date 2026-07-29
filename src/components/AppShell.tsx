@@ -244,9 +244,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Link>
             <Link
               href="/settings"
-              className="plan-badge transition-fast hover-lift"
+              className={`plan-badge transition-fast hover-lift ${currentUser?.plan === "pro" ? "plan-badge--pro" : ""}`}
             >
-              {currentUser?.plan === "free" ? "Free" : currentUser?.plan ?? "..."}
+              {currentUser?.plan === "free" ? "Free" : currentUser?.plan === "pro" ? "PRO" : currentUser?.plan ?? "..."}
             </Link>
             <button
               className="avatar-dropdown-trigger"
