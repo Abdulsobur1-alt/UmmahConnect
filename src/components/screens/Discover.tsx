@@ -1,13 +1,14 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { UserPlus, Globe, Users, CalendarDays, Search } from "lucide-react";
+import { UserPlus, Globe, Users, CalendarDays, Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/Common";
 import { ProfilePreviewModal } from "@/components/ui/ProfilePreviewModal";
@@ -30,6 +31,10 @@ export function Discover() {
   const [search, setSearch] = useState("");
   const [previewUserId, setPreviewUserId] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState<TabId>("all");
+  const [industryFilter, setIndustryFilter] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
+  const [communityDetail, setCommunityDetail] = useState<Community | null>(null);
+  const [sentConnections, setSentConnections] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const communities = useQuery({ queryKey: ["communities"], queryFn: () => apiGet<Community[]>("/api/communities") });
@@ -40,10 +45,10 @@ export function Discover() {
   const searchResults = useQuery({ queryKey: ["universal-search", search.trim()], queryFn: () => apiGet<any>(`/api/search?q=${encodeURIComponent(search.trim())}`), enabled: search.trim().length >= 2 });
   const connect = useMutation({
     mutationFn: (receiver_id: string) => apiSend("/api/connections", "POST", { receiver_id }),
-    onSuccess: () => {
+    onSuccess: (_, receiverId) => {
+      setSentConnections((prev) => new Set(prev).add(receiverId));
       toast("Connection request sent", "success");
       void queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      void queryClient.invalidateQueries({ queryKey: ["suggested-users"] });
     },
     onError: (error: Error) => {
       const message = error.message === "connection_requests_disabled"
@@ -75,6 +80,18 @@ export function Discover() {
     },
   });
 
+  // Derive unique industries/locations from suggested users for filter dropdowns
+  const availableIndustries = useMemo(() => {
+    const set = new Set<string>();
+    (users.data ?? []).forEach((u) => { if (u.industry && u.industry !== 'Other' && u.industry !== '') set.add(u.industry); });
+    return [...set].sort();
+  }, [users.data]);
+  const availableLocations = useMemo(() => {
+    const set = new Set<string>();
+    (users.data ?? []).forEach((u) => { if (u.city) set.add(u.city); });
+    return [...set].sort();
+  }, [users.data]);
+
   // Shared styles to avoid repetition
   const sectionTitle = { fontSize: 18, fontWeight: 700, margin: "0 0 12px" };
 
@@ -92,6 +109,13 @@ export function Discover() {
       (user) => user.id !== me.data?.id && user.industry && user.industry !== "Other" && user.industry !== ""
     );
   }, [me.data?.id, users.data]);
+
+  const filteredUsers = useMemo(() => {
+    let list = suggestedUsers;
+    if (industryFilter) list = list.filter((u) => u.industry === industryFilter);
+    if (locationFilter) list = list.filter((u) => u.city === locationFilter);
+    return list;
+  }, [suggestedUsers, industryFilter, locationFilter]);
 
   const halalJobs = (jobs.data ?? []).slice(0, 3);
   const upcomingEvents = (events.data ?? []).slice(0, 2);
@@ -124,6 +148,40 @@ export function Discover() {
         ))}
       </div>
 
+      {/* Filter dropdowns — shown when People tab is active */}
+      {(selectedTab === "all" || selectedTab === "people") && (
+        <div className="discover-filters">
+          <select
+            className="discover-filter-select"
+            value={industryFilter}
+            onChange={(e) => setIndustryFilter(e.currentTarget.value)}
+          >
+            <option value="">All industries</option>
+            {availableIndustries.map((ind) => (
+              <option key={ind} value={ind}>{ind}</option>
+            ))}
+          </select>
+          <select
+            className="discover-filter-select"
+            value={locationFilter}
+            onChange={(e) => setLocationFilter(e.currentTarget.value)}
+          >
+            <option value="">All locations</option>
+            {availableLocations.map((loc) => (
+              <option key={loc} value={loc}>{loc}</option>
+            ))}
+          </select>
+          {(industryFilter || locationFilter) && (
+            <button
+              className="discover-filter-clear"
+              onClick={() => { setIndustryFilter(''); setLocationFilter(''); }}
+            >
+              <X size={14} /> Clear
+            </button>
+          )}
+        </div>
+      )}
+
       {search.trim().length >= 2 ? (
         <section className="search-results-card">
           <h2 className="section-title">Results for “{search.trim()}”</h2>
@@ -139,7 +197,7 @@ export function Discover() {
       {/* SECTION 2 — People you may know */}
       {(selectedTab === "all" || selectedTab === "people") && <section>
         <h2 className="section-title">People you may know</h2>
-        {suggestedUsers.length === 0 ? (
+        {filteredUsers.length === 0 ? (
           <EmptyState
             icon={<Users size={24} />}
             title="No suggestions yet"
@@ -148,7 +206,9 @@ export function Discover() {
           />
         ) : (
           <div className="discover-scroll">
-            {suggestedUsers.slice(0, 8).map((user) => (
+            {filteredUsers.slice(0, 8).map((user) => {
+              const isPending = sentConnections.has(user.id);
+              return (
               <Card
                 key={user.id}
                 variant="interactive"
@@ -176,6 +236,9 @@ export function Discover() {
                   {user.industry}
                 </p>
                 <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "2px 0 8px" }}>{user.city}</p>
+                {isPending ? (
+                  <span className="pill" style={{ fontSize: 12, width: '100%', justifyContent: 'center' }}>Pending</span>
+                ) : (
                 <Button
                   variant="outline"
                   size="sm"
@@ -186,8 +249,9 @@ export function Discover() {
                 >
                   Connect
                 </Button>
+                )}
               </Card>
-            ))}
+            )})}
           </div>
         )}
       </section>}
@@ -209,12 +273,15 @@ export function Discover() {
               return (
                 <div
                   key={community.id}
+                  className="community-row"
+                  onClick={() => setCommunityDetail(community)}
                   style={{
                     display: "flex",
                     alignItems: "center",
                     gap: 10,
                     padding: "12px 0",
                     borderBottom: "1px solid var(--color-line-light)",
+                    cursor: "pointer",
                   }}
                 >
                   <Avatar name={community.name} size={44} />
@@ -243,7 +310,7 @@ export function Discover() {
                     variant={isJoined ? "primary" : "outline"}
                     size="sm"
                     disabled={Boolean(isJoined) || joinCommunity.isPending}
-                    onClick={() => joinCommunity.mutate(community.id)}
+                    onClick={(e) => { e.stopPropagation(); joinCommunity.mutate(community.id); }}
                   >
                     {isJoined ? "Joined" : joinCommunity.isPending ? "Joining..." : "Join"}
                   </Button>
@@ -317,6 +384,35 @@ export function Discover() {
         )}
     </Stagger>
     {previewUserId ? <ProfilePreviewModal profileId={previewUserId} onClose={() => setPreviewUserId(null)} /> : null}
+    {communityDetail ? (
+      <Modal title={communityDetail.name} onClose={() => setCommunityDetail(null)}>
+        <div className="grid" style={{ gap: 14 }}>
+          <Avatar name={communityDetail.name} size={64} />
+          <div>
+            <h3 style={{ margin: '0 0 4px', fontSize: 18 }}>{communityDetail.name}</h3>
+            <p className="muted" style={{ margin: 0, fontSize: 14 }}>
+              {communityDetail.member_count.toLocaleString()} members
+            </p>
+          </div>
+          {communityDetail.description && (
+            <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--color-text-secondary)', margin: 0 }}>
+              {communityDetail.description}
+            </p>
+          )}
+          <Button
+            fullWidth
+            variant={joinedCommunities.has(communityDetail.id) || communityDetail.is_joined ? 'primary' : 'outline'}
+            disabled={(joinedCommunities.has(communityDetail.id) || communityDetail.is_joined) || joinCommunity.isPending}
+            onClick={() => {
+              joinCommunity.mutate(communityDetail.id);
+              setCommunityDetail(null);
+            }}
+          >
+            {joinedCommunities.has(communityDetail.id) || communityDetail.is_joined ? 'Joined' : 'Join community'}
+          </Button>
+        </div>
+      </Modal>
+    ) : null}
     </PageTransition>
   );
 }
