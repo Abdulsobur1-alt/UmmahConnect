@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, Edit3, MapPin, MessageCircle, Mail, Users, FileText, Globe, Briefcase, CheckCircle2, Share2 } from "lucide-react";
+import { Camera, Edit3, MapPin, MessageCircle, Mail, Users, FileText, Globe, Briefcase, CheckCircle2, Share2, Plus, X } from "lucide-react";
 import { PostCard } from "@/components/ui/PostCard";
 import { FormEvent, useRef, useState } from "react";
 import { Avatar } from "@/components/Avatar";
@@ -21,6 +21,7 @@ export function Profile() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [bioExpanded, setBioExpanded] = useState(false);
+  const [skillInput, setSkillInput] = useState("");
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -261,6 +262,32 @@ export function Profile() {
         ))}
       </div>
 
+      {/* Profile completion bar */}
+      {(() => {
+        const fields = [
+          { filled: !!currentUser.avatar_url, weight: 15 },
+          { filled: !!currentUser.bio, weight: 15 },
+          { filled: !!currentUser.industry, weight: 15 },
+          { filled: !!currentUser.city, weight: 10 },
+          { filled: currentUser.skills.length > 0, weight: 15 },
+          { filled: !!currentUser.banner_url, weight: 10 },
+          { filled: currentUser.open_to_opportunities, weight: 10 },
+          { filled: !!currentUser.career_stage, weight: 10 },
+        ];
+        const pct = fields.reduce((sum, f) => sum + (f.filled ? f.weight : 0), 0);
+        return (
+          <div className="profile-completion animate-fade-in" style={{ padding: '0 20px', marginTop: 14 }}>
+            <div className="flex-between" style={{ marginBottom: 6 }}>
+              <span className="text-13 muted">Profile completion</span>
+              <span className="text-13" style={{ color: pct === 100 ? 'var(--color-success)' : 'var(--color-text-muted)', fontWeight: 600 }}>{pct}%</span>
+            </div>
+            <div className="completion-track">
+              <div className="completion-fill" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        );
+      })()}
+
       {/* 5. Open to Opportunities */}
       {currentUser.open_to_opportunities && (
         <div className="profile-opp-banner animate-fade-in"
@@ -348,6 +375,50 @@ export function Profile() {
             <Input name="career_stage" defaultValue={currentUser.career_stage} placeholder="Career stage" />
             <Input name="city" defaultValue={currentUser.city} placeholder="City" />
             <textarea className="textarea" name="bio" defaultValue={currentUser.bio} placeholder="Bio" rows={4} />
+            
+            {/* Skills input */}
+            <div className="auth-field">
+              <span>Skills</span>
+              <div className="edit-skills-area">
+                {currentUser.skills.map((skill) => (
+                  <span key={skill} className="edit-skill-tag">
+                    {skill}
+                    <button type="button" className="edit-skill-remove" onClick={() => update.mutate({ skills: currentUser.skills.filter((s) => s !== skill) })}>
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+                <div className="edit-skill-input-wrap">
+                  <input
+                    type="text"
+                    value={skillInput}
+                    onChange={(e) => setSkillInput(e.currentTarget.value)}
+                    onKeyDown={(e) => {
+                      if ((e.key === 'Enter' || e.key === ',') && skillInput.trim()) {
+                        e.preventDefault();
+                        const newSkills = [...currentUser.skills, skillInput.trim()];
+                        update.mutate({ skills: newSkills });
+                        setSkillInput("");
+                      }
+                    }}
+                    placeholder={currentUser.skills.length === 0 ? "Type a skill and press Enter..." : "Add more..."}
+                    className="edit-skill-input"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Open to Opportunities toggle */}
+            <label className="toggle-row" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                defaultChecked={currentUser.open_to_opportunities}
+                onChange={(e) => update.mutate({ open_to_opportunities: e.currentTarget.checked })}
+                style={{ width: 18, height: 18, accentColor: 'var(--color-primary)' }}
+              />
+              <span className="text-14">Open to opportunities</span>
+            </label>
+
             <Button
               fullWidth
               loading={update.isPending}

@@ -451,6 +451,19 @@ button { cursor: pointer; }
 .btn-save { border-radius:100px; min-height:44px; }
 .see-all-btn { font-size:13px; color:var(--color-primary); padding:0; border:0; background:none; }
 
+/* Profile completion bar */
+.completion-track { height:6px; border-radius:var(--radius-full); background:var(--color-line-strong); overflow:hidden; }
+.completion-fill { height:100%; border-radius:var(--radius-full); background:linear-gradient(90deg, var(--color-primary), var(--color-success)); transition:width 0.4s ease; }
+
+/* Skills editing */
+.edit-skills-area { display:flex; flex-wrap:wrap; gap:6px; padding:10px; border:1px solid var(--color-line-strong); border-radius:10px; background:var(--color-bg-dark); min-height:44px; align-items:center; }
+.edit-skill-tag { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:var(--radius-full); background:var(--color-primary-light); color:var(--color-text-primary); font-size:13px; font-weight:500; }
+.edit-skill-remove { border:0; background:transparent; color:var(--color-text-muted); cursor:pointer; padding:0; display:grid; place-items:center; line-height:1; }
+.edit-skill-remove:hover { color:var(--color-danger); }
+.edit-skill-input-wrap { flex:1; min-width:80px; }
+.edit-skill-input { width:100%; border:0; background:transparent; color:var(--color-text-primary); font-size:13px; outline:0; padding:2px 0; }
+.edit-skill-input::placeholder { color:var(--color-text-disabled); }
+
 /* App Shell classes */
 .desktop-header-right { position:relative; display:flex; align-items:center; gap:12px; }
 .plan-badge { display:inline-flex; align-items:center; gap:8px; border-radius:999px; padding:8px 12px; color:var(--color-success); background:var(--color-success-light); border:1px solid rgba(94,205,181,0.16); font-size:14px; font-weight:600; text-decoration:none; }
