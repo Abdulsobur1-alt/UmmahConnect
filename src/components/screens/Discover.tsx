@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/Common";
+import { ProfilePreviewModal } from "@/components/ui/ProfilePreviewModal";
 import { PageTransition, Stagger } from "@/components/ui/PageTransition";
 import { useToast } from "@/components/ui/Toast";
 import { apiGet, apiSend } from "@/lib/api/client";
@@ -17,6 +18,7 @@ import type { Community, EventListing, Job, User } from "@/types";
 
 export function Discover() {
   const [search, setSearch] = useState("");
+  const [previewUserId, setPreviewUserId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const communities = useQuery({ queryKey: ["communities"], queryFn: () => apiGet<Community[]>("/api/communities") });
@@ -128,6 +130,7 @@ export function Discover() {
                 variant="interactive"
                 padding="md"
                 className="user-card"
+                onClick={() => setPreviewUserId(user.id)}
               >
                 <div className="avatar-center">
                   <Avatar name={user.full_name} size={52} />
@@ -155,7 +158,7 @@ export function Discover() {
                   fullWidth
                   icon={<UserPlus size={14} />}
                   disabled={connect.isPending}
-                  onClick={() => connect.mutate(user.id)}
+                  onClick={(event) => { event.stopPropagation(); connect.mutate(user.id); }}
                 >
                   Connect
                 </Button>
@@ -286,6 +289,7 @@ export function Discover() {
           />
         )}
     </Stagger>
+    {previewUserId ? <ProfilePreviewModal profileId={previewUserId} onClose={() => setPreviewUserId(null)} /> : null}
     </PageTransition>
   );
 }

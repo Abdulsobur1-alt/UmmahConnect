@@ -37,6 +37,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [dropdownAnimating, setDropdownAnimating] = useState(false);
   const [maxVisibleNav, setMaxVisibleNav] = useState(navItems.length);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const moreNavRef = useRef<HTMLDivElement>(null);
   const navLinksRef = useRef<HTMLDivElement>(null);
   const { data: currentUser } = useQuery({ queryKey: ["me"], queryFn: () => apiGet<User>("/api/users/me") });
   const { data: notifications = [] } = useQuery({
@@ -51,9 +52,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
       }
+      if (moreNavRef.current && !moreNavRef.current.contains(event.target as Node)) {
+        setShowMoreNav(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const closeMoreOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowMoreNav(false);
+    };
+    document.addEventListener("keydown", closeMoreOnEscape);
+    return () => document.removeEventListener("keydown", closeMoreOnEscape);
   }, []);
 
   // Fluid More menu — measure available space between brand and right controls
@@ -148,7 +160,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               );
             })}
             {overflowItems.length > 0 ? (
-              <div className="desktop-nav-more" style={{ display: "block" }}>
+              <div className="desktop-nav-more" style={{ display: "block" }} ref={moreNavRef}>
                 <button
                   className={`nav-link nav-link-more ${overflowItems.some((item) => pathname === item.href) ? "nav-link-active" : ""}`}
                   onClick={() => setShowMoreNav((value) => !value)}

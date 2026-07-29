@@ -225,6 +225,13 @@ button { cursor: pointer; }
 .public-section { margin-top:var(--space-3xl); }
 .public-subtitle { font-size:var(--text-h2); margin-bottom:var(--space-lg); }
 .public-comments { gap:var(--space-md); }
+.profile-preview { display:grid; gap:16px; }
+.profile-preview-head { display:flex; align-items:center; gap:14px; }
+.profile-preview-head h3 { margin:0; font-size:24px; }
+.profile-preview-head .muted { margin:4px 0 0; }
+.profile-preview-location { display:flex; align-items:center; gap:4px; margin:5px 0 0; color:var(--color-text-muted); font-size:13px; }
+.profile-preview-bio { margin:0; color:var(--color-text-secondary); line-height:1.6; }
+.profile-preview-skills { gap:8px; }
 .public-comment-card { padding:var(--space-lg); }
 .public-link { font-weight:600; }
 .public-hero-row { gap:var(--space-lg); }

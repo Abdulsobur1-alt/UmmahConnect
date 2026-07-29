@@ -1,8 +1,9 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, CheckCheck, Users, MessageCircle, Briefcase, Sparkles, CreditCard, BellOff } from "lucide-react";
+import { Bell, CheckCheck, Users, MessageCircle, Briefcase, Sparkles, CreditCard, BellOff, Trash2 } from "lucide-react";
 import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -68,6 +69,7 @@ function groupNotifications(items: Notification[]) {
 
 export function Notifications() {
   const { toast } = useToast();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const me = useQuery({ queryKey: ["me"], queryFn: () => apiGet<User>("/api/users/me") });
   const notifications = useQuery({ queryKey: ["notifications"], queryFn: () => apiGet<Notification[]>("/api/notifications") });
@@ -84,12 +86,21 @@ export function Notifications() {
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["notifications"] }),
     onError: () => toast("Could not mark this notification as read. Try again.", "error"),
   });
+  const removeOne = useMutation({
+    mutationFn: (id: string) => apiSend(`/api/notifications/${id}`, "DELETE"),
+    onSuccess: () => {
+      toast("Notification deleted", "success");
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+    onError: () => toast("Could not delete this notification. Try again.", "error"),
+  });
   const acceptConnection = useMutation({
     mutationFn: (input: { connectionId: string; notificationId: string }) => apiSend(`/api/connections/${input.connectionId}`, "PATCH", { status: "accepted" }),
-    onSuccess: (_, input) => {
+    onSuccess: async (_, input) => {
       toast("Connection accepted", "success");
-      void markOne.mutate(input.notificationId);
+      await apiSend(`/api/notifications/${input.notificationId}/read`, "POST");
       void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      void queryClient.invalidateQueries({ queryKey: ["message-conversations"] });
     },
     onError: () => {
       toast("Could not accept connection.", "error");
@@ -97,15 +108,23 @@ export function Notifications() {
   });
   const declineConnection = useMutation({
     mutationFn: (input: { connectionId: string; notificationId: string }) => apiSend(`/api/connections/${input.connectionId}`, "PATCH", { status: "declined" }),
-    onSuccess: (_, input) => {
+    onSuccess: async (_, input) => {
       toast("Connection request declined", "success");
-      void markOne.mutate(input.notificationId);
+      await apiSend(`/api/notifications/${input.notificationId}/read`, "POST");
       void queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
     onError: () => toast("Could not decline connection request.", "error"),
   });
 
   const grouped = useMemo(() => groupNotifications(notifications.data ?? []), [notifications.data]);
+
+  function viewNotification(notification: Notification) {
+    if (!notification.is_read) markOne.mutate(notification.id);
+    if (notification.type === "job_match") router.push("/jobs");
+    else if (notification.type === "event_sponsored") router.push("/announcements");
+    else if (notification.type === "post_liked" || notification.type === "comment_received") router.push(notification.reference_id ? `/posts/${notification.reference_id}` : "/feed");
+    else if (notification.type === "message_received" || notification.type === "connection_accepted") router.push("/messages");
+  }
 
   if (notifications.isLoading) return <div className="skeleton" />;
   if (notifications.error) return (
@@ -151,6 +170,7 @@ export function Notifications() {
                     style={{
                       borderColor: notification.is_read ? "var(--color-line)" : "rgba(94, 205, 181, 0.45)",
                     }}
+                    onClick={() => viewNotification(notification)}
                   >
                     <div
                       className="notif-icon"
@@ -178,7 +198,7 @@ export function Notifications() {
                           variant="accent"
                           size="sm"
                           disabled={acceptConnection.isPending}
-                          onClick={() => acceptConnection.mutate({ connectionId: notification.reference_id!, notificationId: notification.id })}
+                          onClick={(event) => { event.stopPropagation(); acceptConnection.mutate({ connectionId: notification.reference_id!, notificationId: notification.id }); }}
                         >
                           Accept
                         </Button>
@@ -188,7 +208,7 @@ export function Notifications() {
                           variant="ghost"
                           size="sm"
                           disabled={declineConnection.isPending}
-                          onClick={() => declineConnection.mutate({ connectionId: notification.reference_id!, notificationId: notification.id })}
+                          onClick={(event) => { event.stopPropagation(); declineConnection.mutate({ connectionId: notification.reference_id!, notificationId: notification.id }); }}
                         >
                           Decline
                         </Button>
@@ -198,11 +218,19 @@ export function Notifications() {
                           variant="ghost"
                           size="sm"
                           disabled={markOne.isPending}
-                          onClick={() => markOne.mutate(notification.id)}
+                          onClick={(event) => { event.stopPropagation(); markOne.mutate(notification.id); }}
                         >
                           Read
                         </Button>
                       )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={removeOne.isPending}
+                        icon={<Trash2 size={15} />}
+                        aria-label="Delete notification"
+                        onClick={(event) => { event.stopPropagation(); removeOne.mutate(notification.id); }}
+                      ><></></Button>
                     </div>
                   </Card>
                 );
