@@ -16,9 +16,20 @@ import { useToast } from "@/components/ui/Toast";
 import { apiGet, apiSend } from "@/lib/api/client";
 import type { Community, EventListing, Job, User } from "@/types";
 
+const tabs = [
+  { id: "all", label: "All" },
+  { id: "people", label: "People" },
+  { id: "communities", label: "Communities" },
+  { id: "jobs", label: "Jobs" },
+  { id: "events", label: "Events" },
+] as const;
+
+type TabId = (typeof tabs)[number]["id"];
+
 export function Discover() {
   const [search, setSearch] = useState("");
   const [previewUserId, setPreviewUserId] = useState<string | null>(null);
+  const [selectedTab, setSelectedTab] = useState<TabId>("all");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const communities = useQuery({ queryKey: ["communities"], queryFn: () => apiGet<Community[]>("/api/communities") });
@@ -100,6 +111,19 @@ export function Discover() {
         className="search-input"
       />
 
+      {/* Category tabs */}
+      <div className="discover-tabs">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            className={`discover-tab ${selectedTab === tab.id ? "discover-tab--active" : ""}`}
+            onClick={() => setSelectedTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {search.trim().length >= 2 ? (
         <section className="search-results-card">
           <h2 className="section-title">Results for “{search.trim()}”</h2>
@@ -113,7 +137,7 @@ export function Discover() {
       ) : null}
 
       {/* SECTION 2 — People you may know */}
-      <section>
+      {(selectedTab === "all" || selectedTab === "people") && <section>
         <h2 className="section-title">People you may know</h2>
         {suggestedUsers.length === 0 ? (
           <EmptyState
@@ -166,10 +190,10 @@ export function Discover() {
             ))}
           </div>
         )}
-      </section>
+      </section>}
 
       {/* SECTION 3 — Communities for you */}
-      <section>
+      {(selectedTab === "all" || selectedTab === "communities") && <section>
         <h2 style={sectionTitle}>Communities for you</h2>
         {(search ? filteredCommunities : communities.data ?? []).length === 0 ? (
           <EmptyState
@@ -228,10 +252,10 @@ export function Discover() {
             })}
           </div>
         )}
-      </section>
+      </section>}
 
       {/* SECTION 4 — Halal Job Picks */}
-      {halalJobs.length > 0 && (
+      {(selectedTab === "all" || selectedTab === "jobs") && halalJobs.length > 0 && (
         <section>
           <div className="flex-between" style={{ marginBottom: 12 }}>
             <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Halal Job Picks</h2>
@@ -260,7 +284,7 @@ export function Discover() {
       )}
 
       {/* SECTION 5 — Upcoming Islamic Events */}
-      {upcomingEvents.length > 0 && (
+      {(selectedTab === "all" || selectedTab === "events") && upcomingEvents.length > 0 && (
         <section>
           <h2 style={sectionTitle}>Upcoming Islamic Events</h2>
           <Stagger as="div" style={{ display: "grid", gap: 8 }}>
