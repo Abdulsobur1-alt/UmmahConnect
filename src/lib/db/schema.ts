@@ -93,6 +93,7 @@ export const posts = pgTable("posts", {
   communityId: uuid("community_id"),
   likesCount: integer("likes_count").notNull().default(0),
   commentsCount: integer("comments_count").notNull().default(0),
+  repostsCount: integer("reposts_count").notNull().default(0),
   isDeleted: boolean("is_deleted").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -112,6 +113,16 @@ export const postLikes = pgTable(
   (table) => ({
     pk: primaryKey({ columns: [table.postId, table.userId] }),
   }),
+);
+
+export const postReposts = pgTable(
+  "post_reposts",
+  {
+    postId: uuid("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.postId, table.userId] }) }),
 );
 
 /* ─── 5. Comments ─── */

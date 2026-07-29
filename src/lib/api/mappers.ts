@@ -160,6 +160,7 @@ export function postDto(post: any) {
     community_id: post.community_id ?? post.communityId ?? null,
     likes_count: n(post, 'likes_count', 'likesCount'),
     comments_count: n(post, 'comments_count', 'commentsCount'),
+    reposts_count: n(post, 'reposts_count', 'repostsCount'),
     created_at: s(post, 'created_at', 'createdAt'),
     user: post.users ? userDto(post.users) : null,
   };

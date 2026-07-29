@@ -107,6 +107,11 @@ export function HomeFeed() {
       });
     },
   });
+  const repost = useMutation({
+    mutationFn: (postId: string) => apiSend<{ reposted: boolean }>(`/api/posts/${postId}/repost`, "POST"),
+    onSuccess: (data) => { toast(data.reposted ? "Post reposted" : "Repost removed", "success"); void queryClient.invalidateQueries({ queryKey: ["posts"] }); },
+    onError: () => toast("Could not repost this update.", "error"),
+  });
 
   function submitPost(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -226,6 +231,7 @@ export function HomeFeed() {
                   isAnimatingLike={isAnimatingLike}
                   onToggleExpand={toggleExpand}
                   onLike={(postId) => toggleLike.mutate(postId)}
+                  onRepost={(postId) => repost.mutate(postId)}
                   index={index}
                 />
               );

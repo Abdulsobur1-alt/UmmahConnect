@@ -35,6 +35,7 @@ export type Post = {
   community_id: string | null;
   likes_count: number;
   comments_count: number;
+  reposts_count?: number;
   created_at: string;
   user: User;
 };

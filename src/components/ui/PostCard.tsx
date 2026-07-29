@@ -1,4 +1,4 @@
-import { Heart, MessageCircle, Share2 } from "lucide-react";
+import { Heart, MessageCircle, Repeat2, Share2 } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/ui/Button";
@@ -13,6 +13,7 @@ type PostCardProps = {
   isAnimatingLike: boolean;
   onToggleExpand: (postId: string) => void;
   onLike: (postId: string) => void;
+  onRepost?: (postId: string) => void;
   currentUserId?: string;
   index?: number;
 };
@@ -27,6 +28,7 @@ export function PostCard({
   isAnimatingLike,
   onToggleExpand,
   onLike,
+  onRepost,
   index = 0,
 }: PostCardProps) {
   const contentLong = post.content.length > 200;
@@ -96,6 +98,9 @@ export function PostCard({
         <Link href={`/posts/${post.id}`} className="btn post-action-btn">
           <MessageCircle size={16} /> {post.comments_count}
         </Link>
+        <Button variant="ghost" size="sm" className="post-action-btn" onClick={() => onRepost?.(post.id)}>
+          <Repeat2 size={16} /> {post.reposts_count ?? 0}
+        </Button>
         <Button variant="ghost" size="sm" className="post-action-btn" style={{ marginLeft: "auto" }} onClick={() => { const url = `${window.location.origin}/posts/${post.id}`; if (navigator.share) void navigator.share({ title: "Ummah Connect", text: post.content, url }); else void navigator.clipboard.writeText(url); }}>
           <Share2 size={16} /> Share
         </Button>

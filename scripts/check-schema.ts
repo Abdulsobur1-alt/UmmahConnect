@@ -5,7 +5,8 @@ dotenv.config({ path: ".env.local" });
 
 const expected: Record<string, string[]> = {
   users: ["id", "full_name", "email", "allow_connection_requests", "onboarding_completed", "notification_settings"],
-  posts: ["id", "user_id", "content", "created_at"],
+  posts: ["id", "user_id", "content", "created_at", "reposts_count"],
+  post_reposts: ["post_id", "user_id", "created_at"],
   jobs: ["id", "posted_by", "title", "created_at"],
   messages: ["id", "sender_id", "receiver_id", "content", "created_at"],
   notifications: ["id", "user_id", "type", "content"],
