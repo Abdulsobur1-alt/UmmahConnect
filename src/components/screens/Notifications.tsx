@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, CheckCheck, Users, MessageCircle, Briefcase, Sparkles, CreditCard, BellOff, Trash2 } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -44,7 +44,7 @@ function groupNotifications(items: Notification[]) {
   const today = now.toDateString();
   const yesterday = new Date(now.getTime() - 86400000).toDateString();
   
-  const groups: { label: string; items: Notification[] }[] = [
+  const raw: { label: string; items: Notification[] }[] = [
     { label: "Today", items: [] },
     { label: "Yesterday", items: [] },
     { label: "This Week", items: [] },
@@ -54,17 +54,46 @@ function groupNotifications(items: Notification[]) {
   for (const item of items) {
     const date = new Date(item.created_at);
     if (Number.isNaN(date.getTime())) {
-      groups[3].items.push(item);
+      raw[3].items.push(item);
       continue;
     }
     const dateStr = date.toDateString();
-    if (dateStr === today) groups[0].items.push(item);
-    else if (dateStr === yesterday) groups[1].items.push(item);
-    else if (Date.now() - date.getTime() < 7 * 86400000) groups[2].items.push(item);
-    else groups[3].items.push(item);
+    if (dateStr === today) raw[0].items.push(item);
+    else if (dateStr === yesterday) raw[1].items.push(item);
+    else if (Date.now() - date.getTime() < 7 * 86400000) raw[2].items.push(item);
+    else raw[3].items.push(item);
   }
 
-  return groups.filter((g) => g.items.length > 0);
+  // Merge same-type notifications within each time group for cleaner display
+  const merged = raw.map((group) => {
+    if (group.items.length === 0) return group;
+    const mergedList: Notification[] = [];
+    let current: Notification | null = null;
+    let count = 1;
+
+    for (const item of group.items) {
+      if (current && current.type === item.type) {
+        count++;
+        // Update content to reflect count for certain types
+        if (current.type === 'post_liked' || current.type === 'comment_received') {
+          current = { ...current, content: `${item.content.split(' ')[0]} and ${count} others` } as Notification;
+        } else if (current.type === 'connection_request') {
+          current = { ...current, content: `${count} connection requests` } as Notification;
+        } else {
+          current = item;
+          count = 1;
+        }
+      } else {
+        if (current) mergedList.push(current);
+        current = item;
+        count = 1;
+      }
+    }
+    if (current) mergedList.push(current);
+    return { ...group, items: mergedList };
+  });
+
+  return merged.filter((g) => g.items.length > 0);
 }
 
 export function Notifications() {
@@ -72,7 +101,11 @@ export function Notifications() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const me = useQuery({ queryKey: ["me"], queryFn: () => apiGet<User>("/api/users/me") });
-  const notifications = useQuery({ queryKey: ["notifications"], queryFn: () => apiGet<Notification[]>("/api/notifications") });
+  const notifications = useQuery({
+    queryKey: ["notifications"],
+    queryFn: () => apiGet<Notification[]>("/api/notifications"),
+    refetchInterval: 60_000, // Poll for new notifications every 60s
+  });
   const markAll = useMutation({
     mutationFn: () => apiSend("/api/notifications/read", "POST"),
     onSuccess: () => {
